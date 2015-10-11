@@ -5,6 +5,13 @@
 *.o
 *.obj
 
+# Dependecy files
+*.d
+
+# Build directory
+Debug/
+Release/
+
 # Precompiled Headers
 *.gch
 *.pch
