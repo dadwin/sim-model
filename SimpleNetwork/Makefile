@@ -117,14 +117,20 @@ depend:
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 $O/src/Network.o: src/Network.cc \
-	src/Network.h \
-	src/Resource.h
-$O/src/Server.o: src/Server.cc \
+	src/Flow.h \
 	src/Network.h \
 	src/Resource.h \
 	src/Server.h
-$O/src/Switch.o: src/Switch.cc \
+$O/src/Server.o: src/Server.cc \
+	src/Flow.h \
 	src/Network.h \
 	src/Resource.h \
+	src/Server.h \
+	src/Solver.h
+$O/src/Switch.o: src/Switch.cc \
+	src/Flow.h \
+	src/Network.h \
+	src/Resource.h \
+	src/Server.h \
 	src/Switch.h
 

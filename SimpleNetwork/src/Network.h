@@ -10,6 +10,7 @@
 
 #include <vector>
 #include "Resource.h"
+#include "Flow.h"
 
 
 class Network {
@@ -17,6 +18,7 @@ class Network {
 protected:
 public:
     std::vector<Resource*> resources;
+    std::vector<Flow*> flows;
 
 public:
     Network() {

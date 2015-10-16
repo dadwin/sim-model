@@ -26,6 +26,10 @@ class Server : public cSimpleModule
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
+    void handleSelfMessage(cMessage *msg);
+
+    void addFlow();
+    void removeFlow();
 };
 
 #endif

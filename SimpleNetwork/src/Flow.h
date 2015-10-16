@@ -8,8 +8,13 @@
 #ifndef FLOW_H_
 #define FLOW_H_
 
+#include <simtime.h>
+#include <cmessage.h>
+#include "Server.h"
+#include "Resource.h"
 
 class Flow {
+
 protected:
     double demand;
     std::vector<long> path;
@@ -21,34 +26,72 @@ protected:
 
     simtime_t startTime;
     simtime_t endTime;
+    //cSimpleModule* owner;
+    Server* srcServer; // owner of flow
+    Server* dstServer;
 
-    Server sourceServer;
-    Server destServer;
+    cMessage* event;
 
 public:
 
+
+
     Flow(const long id, const double desiredAllocation, const std::vector<long>& path) {
 
-        this->id = id;
+        //this->id = id; // TODO is it needed?
         this->desiredAllocation = desiredAllocation;
         this->currentAllocation = 0.0;
         this->previousAllocation = 0.0;
 
-    }
+        // when event is delivered, module knows about flow via the Flow parameter
+        event = new cMessage("FlowMessage", 0);
+        auto par = new cMsgPar("Flow");
+        par->setPointerValue(this);
+        event->addPar(par);
 
+    }
+/*
     Flow(long id, double demand, const long* path, const size_t path_size)
-        : id(id), demand(demand) {
+        : demand(demand) {
 
         allocation = 0.0;
         this->path.assign(path, path + path_size);
+
+        event = new cMessage("FlowMessage", 0);
+    }
+*/
+
+    ~Flow() {
+        delete event;
     }
 
+    cMessage* getEvent() const {
+        return event;
+    }
+
+    simtime_t getStartTime() const {
+        return startTime;
+    }
+
+    simtime_t getEndTime() const {
+        return endTime;
+    }
+
+    Server* sourceServer() const {
+        return srcServer;
+    }
+
+    void updateEndTime() {
+        simtime_t newEndTime = startTime + (endTime - startTime)*currentAllocation/desiredAllocation;
+        endTime = newEndTime;
+    }
 
 
 
     bool operator==(const Flow& f) {
-        if (id != f.id)
-            return false;
+        return this == &f;
+//        if (id != f.id)
+//            return false;
 
         // TODO what about other members?
         // It seems that id is enough for comparison
@@ -56,7 +99,9 @@ public:
     }
 
     long getId() const {
-        return id;
+        //return id;
+        throw std::invalid_argument("bad method invokation");
+        return 0;
     }
 
     double getDemand() const {
@@ -80,7 +125,7 @@ public:
 
     bool runThroughResource(const Resource* r) const {
         bool running = false;
-        for (long node : path) {
+        for (auto node : path) {
             if (node == r->getId()) {
                 running = true;
                 break;
@@ -100,6 +145,7 @@ public:
     }
 
 };
+
 
 
 
