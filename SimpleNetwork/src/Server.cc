@@ -18,11 +18,34 @@
 #include "Network.h"
 #include "Solver.h"
 #include <algorithm>
+#include <map>
 
 Define_Module(Server);
 
+
+static int lastAddress = 0;
+static std::map<int, Server*> addressMapping;
+
+int Server::getAddress() const {
+    return address;
+}
+
 void Server::initialize()
 {
+
+    // set address
+    address = ++lastAddress; // TODO what about concurrency safety?
+    // add to addressMapping in order to find it later quickly
+    addressMapping.insert(std::pair<int, Server*>(address, this));
+}
+
+Server* Server::getServerByAddress(const int address) {
+    auto it = addressMapping.find(address);
+    if (it == addressMapping.end()) {
+        return nullptr;
+    } else {
+        return it->second;
+    }
 }
 
 void Server::handleMessage(cMessage *msg)

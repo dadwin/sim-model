@@ -24,12 +24,18 @@
 class Server : public cSimpleModule
 {
   protected:
+    int address;
+
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
     void handleSelfMessage(cMessage *msg);
 
     void addFlow();
     void removeFlow();
+
+  public:
+    int getAddress() const;
+    static Server* getServerByAddress(const int address);
 };
 
 #endif
