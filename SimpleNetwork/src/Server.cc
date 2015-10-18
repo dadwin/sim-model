@@ -17,6 +17,8 @@
 #include "Flow.h"
 #include "Network.h"
 #include "Solver.h"
+#include <cexception.h>
+
 #include <algorithm>
 #include <map>
 
@@ -37,15 +39,88 @@ void Server::initialize()
     address = ++lastAddress; // TODO what about concurrency safety?
     // add to addressMapping in order to find it later quickly
     addressMapping.insert(std::pair<int, Server*>(address, this));
+
+
+    if (address == 100) {
+        auto path = getResourcePath(1, 100);
+        (void) path;
+    }
 }
 
 Server* Server::getServerByAddress(const int address) {
+    // TODO what about input argument checking?
     auto it = addressMapping.find(address);
     if (it == addressMapping.end()) {
         return nullptr;
     } else {
         return it->second;
     }
+}
+
+std::vector<Resource*>* Server::getResourcePath(const int srcAddress, const int dstAddress) {
+    auto srcServer = Server::getServerByAddress(srcAddress);
+    auto dstServer = Server::getServerByAddress(dstAddress);
+
+    if (srcServer == nullptr) {
+        throw cRuntimeError("no server for source address: %d", srcAddress);
+    }
+
+    if (dstServer == nullptr) {
+        throw cRuntimeError("no server for destination address: %d", dstAddress);
+    }
+
+    std::vector<Resource*>* path = new std::vector<Resource*>();
+
+    cTopology topo;
+/*
+    std::vector<std::string> nedTypeNames;
+    nedTypeNames.push_back("DataChannel");
+    nedTypeNames.push_back("Switch");
+    topo.extractByNedTypeName(nedTypeNames);
+    */
+    topo.extractByProperty("node");
+    ev << topo.getNumNodes() << " topology size\n";
+
+    cTopology::Node* dstNode = topo.getNodeFor(dstServer);
+    cTopology::Node* srcNode = topo.getNodeFor(srcServer);
+    topo.calculateUnweightedSingleShortestPathsTo(dstNode);
+
+    if (srcNode->getNumPaths() == 0) {
+        ev << "not connected\n";
+        return path;
+    }
+
+    cTopology::Node *node = srcNode;
+    ev << "path from node " << node->getModule()->getFullPath() << endl;
+    ev << "path   to node " << dstNode->getModule()->getFullPath() << endl;
+    while (node != topo.getTargetNode()) {
+        ev << "We are in " << node->getModule()->getFullPath() << endl;
+        ev << node->getDistanceToTarget() << " hops to go\n";
+        ev << "There are " << node->getNumPaths() << " equally good directions, taking the first one\n";
+        cTopology::LinkOut *link = node->getPath(0);
+
+
+        path->push_back((Resource*) node->getModule());
+/*
+        ev << "Taking gate " << path->getLocalGate()->getFullName()
+                << " id:" << path->getLocalGate()->getId()
+                << " we arrive in "
+                << path->getRemoteNode()->getModule()->getFullPath()
+                << " on its gate " << path->getRemoteGate()->getFullName()
+                << " id:" << path->getRemoteGate()->getId()
+                << endl;
+*/
+
+        node = link->getRemoteNode();
+
+    }
+
+//    std::reverse(gatesIDs->begin(), gatesIDs->end());
+    for (auto i : *path) // TODO
+        ev << i << endl;
+
+
+    return path;
 }
 
 void Server::handleMessage(cMessage *msg)
@@ -104,17 +179,18 @@ void Server::addFlow() {
         if (f->isReduced()) {
             f->updateEndTime();
 
+
+            // update flows scheduling
             auto event = f->getEvent();
             f->sourceServer()->cancelEvent(event);
             f->sourceServer()->scheduleAt(f->getEndTime(), event);
         }
     }
-    // update flows scheduling
 
     // create event for omnetpp for new flow
     scheduleAt(flow->getEndTime(), flow->getEvent());
 
-
+    // TODO update capacity for switches and links
 
 
 }

@@ -21,6 +21,9 @@
 /**
  * TODO - Generated class
  */
+
+class Resource; // forward declaration
+
 class Server : public cSimpleModule
 {
   protected:
@@ -36,6 +39,8 @@ class Server : public cSimpleModule
   public:
     int getAddress() const;
     static Server* getServerByAddress(const int address);
+
+    static std::vector<Resource*>* getResourcePath(const int srcAddress, const int dstAddress);
 };
 
 #endif

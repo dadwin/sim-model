@@ -33,7 +33,7 @@ void Switch::initialize()
         assert(gate->isVector() == true);
 
         // TODO log something special here.
-        ev << gate->getFullName() << gate->getChannel() << gate->getFullPath() << gate->isConnectedOutside() << gate->isConnectedInside() << endl;
+//        ev << gate->getFullName() << gate->getChannel() << gate->getFullPath() << gate->isConnectedOutside() << gate->isConnectedInside() << endl;
 
         auto ch = gate->getChannel();
 
