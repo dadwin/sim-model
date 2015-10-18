@@ -13,6 +13,8 @@
 #include "Flow.h"
 
 
+class cChannel; // forward declaration
+
 class Network {
 
 protected:
@@ -28,6 +30,18 @@ public:
 
     void registerResource(Resource* r) {
         resources.push_back(r);
+    }
+
+    Resource* getResourceByChannel(const cChannel* const ch) const {
+        if (ch == nullptr) {
+            throw cRuntimeError("'ch' is null pointer");
+        }
+        for (auto r : resources) {
+            auto ri = static_cast<LinkResource*>(r);
+            if (ri->getNedObj() == ch)
+                return r;
+        }
+        return nullptr;
     }
 
 

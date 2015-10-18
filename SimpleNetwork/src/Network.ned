@@ -80,7 +80,7 @@ module Rack
 //            switch.port$i[k] <-- DataChannel <-- server[k-1].port$o;
             switch.port[k] <--> DataChannel <--> server[k-1].port;
         }
-        port <--> DataChannel <--> switch.port[0];
+        port <--> switch.port[0];
 }
 
 

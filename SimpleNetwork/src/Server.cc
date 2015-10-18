@@ -71,6 +71,37 @@ std::vector<Resource*>* Server::getResourcePath(const int srcAddress, const int 
 
     std::vector<Resource*>* path = new std::vector<Resource*>();
 
+    cModule* storage = cSimulation::getActiveSimulation()->getModuleByPath("Storage");
+    if (storage == nullptr) {
+        throw cRuntimeError("no storage module");
+    }
+#if 0
+    cModule* parentModule;
+    cModule* fromModule;
+    cModule* toModule = dstServer;
+
+    fromModule = srcServer;
+    parentModule = fromModule->getParentModule();
+    if (parentModule == nullptr) {
+        throw cRuntimeError("no parent module for %s", fromModule->getFullPath().c_str());
+    }
+    if (parentModule->hasSubmodules() == false) {
+        throw cRuntimeError("no submodules for %s", parentModule->getFullPath().c_str());
+    }
+
+    for (cModule::SubmoduleIterator it(parentModule); !it.end(); it++) {
+        cModule *submodp = it();
+        if (submodp == fromModule) {
+            // skip this module, since that module is where we came from
+            continue;
+        }
+        // for each submodule we try finding desired source module
+
+    }
+
+    return path;
+#endif
+
     cTopology topo;
 /*
     std::vector<std::string> nedTypeNames;
@@ -96,22 +127,33 @@ std::vector<Resource*>* Server::getResourcePath(const int srcAddress, const int 
     while (node != topo.getTargetNode()) {
         ev << "We are in " << node->getModule()->getFullPath() << endl;
         ev << node->getDistanceToTarget() << " hops to go\n";
-        ev << "There are " << node->getNumPaths() << " equally good directions, taking the first one\n";
+        //ev << "There are " << node->getNumPaths() << " equally good directions, taking the first one\n";
         cTopology::LinkOut *link = node->getPath(0);
 
-
         path->push_back((Resource*) node->getModule());
-/*
-        ev << "Taking gate " << path->getLocalGate()->getFullName()
-                << " id:" << path->getLocalGate()->getId()
-                << " we arrive in "
-                << path->getRemoteNode()->getModule()->getFullPath()
-                << " on its gate " << path->getRemoteGate()->getFullName()
-                << " id:" << path->getRemoteGate()->getId()
-                << endl;
-*/
+
+//        auto currentM = node->getModule();
+#if 1
+        ev
+        //<< "Taking gate " << link->getLocalGate()->getFullName()
+        //<< " id:" << link->getLocalGate()->getId()
+        << " ptr:" << link->getLocalGate()
+        << " ch:" << (void*) link->getLocalGate()->getChannel()
+        << " next: " << (void*) link->getLocalGate()->getNextGate()->getChannel()
+        << " we arrive in "
+        << link->getRemoteNode()->getModule()->getFullPath()
+        //<< " on its gate " << link->getRemoteGate()->getFullName()
+        //<< " id:" << link->getRemoteGate()->getId()
+        << " ptr:" << link->getRemoteGate()
+        << endl;
+#endif
 
         node = link->getRemoteNode();
+
+//        for (ChannelIterator it(currentM); !it.end(); it++) {
+//            cChannel* ch = it();
+//            ch->
+//        }
 
     }
 
