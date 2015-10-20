@@ -3,6 +3,9 @@
 
 #include <stdexcept>
 
+
+class cObject;
+
 class Resource {
 public:
 
@@ -13,6 +16,8 @@ public:
     }
 
     virtual long getId() const = 0;
+
+    virtual cObject* getNedObj() const = 0;
 
     virtual double getMaxCapacity() const = 0;
 
@@ -30,7 +35,6 @@ public:
 
 };
 
-class cObject;
 
 class SwitchResource : public Resource {
 

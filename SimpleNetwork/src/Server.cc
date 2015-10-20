@@ -40,11 +40,30 @@ void Server::initialize()
     // add to addressMapping in order to find it later quickly
     addressMapping.insert(std::pair<int, Server*>(address, this));
 
+    // identifying channels as resources
+    // we iterate through all OUTPUT gates and those which have underlying channels,
+    // since some of them have not - e.g. case of connection between rack switch and rack itself.
+    for (GateIterator it(this); !it.end(); it++) {
+        auto gate = it();
+        if (gate->getType() != cGate::OUTPUT)
+            continue;
 
-    if (address == 100) {
-        auto path = getResourcePath(1, 100);
-        (void) path;
+        auto channel = gate->getChannel();
+        if (channel == nullptr)
+            continue;
+
+        const double maxCapacity = channel->par("maxCapacity");
+        Resource* resource = new LinkResource(channel, 0, maxCapacity); // TODO what about id? can it be 'this' pointer?
+        network.registerResource(resource);
     }
+
+
+    if (address == 11) {
+        // TODO for testing
+        scheduleAt(0, new cMessage("getResoursePath", 0));
+    }
+
+
 }
 
 Server* Server::getServerByAddress(const int address) {
@@ -71,44 +90,7 @@ std::vector<Resource*>* Server::getResourcePath(const int srcAddress, const int 
 
     std::vector<Resource*>* path = new std::vector<Resource*>();
 
-    cModule* storage = cSimulation::getActiveSimulation()->getModuleByPath("Storage");
-    if (storage == nullptr) {
-        throw cRuntimeError("no storage module");
-    }
-#if 0
-    cModule* parentModule;
-    cModule* fromModule;
-    cModule* toModule = dstServer;
-
-    fromModule = srcServer;
-    parentModule = fromModule->getParentModule();
-    if (parentModule == nullptr) {
-        throw cRuntimeError("no parent module for %s", fromModule->getFullPath().c_str());
-    }
-    if (parentModule->hasSubmodules() == false) {
-        throw cRuntimeError("no submodules for %s", parentModule->getFullPath().c_str());
-    }
-
-    for (cModule::SubmoduleIterator it(parentModule); !it.end(); it++) {
-        cModule *submodp = it();
-        if (submodp == fromModule) {
-            // skip this module, since that module is where we came from
-            continue;
-        }
-        // for each submodule we try finding desired source module
-
-    }
-
-    return path;
-#endif
-
     cTopology topo;
-/*
-    std::vector<std::string> nedTypeNames;
-    nedTypeNames.push_back("DataChannel");
-    nedTypeNames.push_back("Switch");
-    topo.extractByNedTypeName(nedTypeNames);
-    */
     topo.extractByProperty("node");
     ev << topo.getNumNodes() << " topology size\n";
 
@@ -117,7 +99,7 @@ std::vector<Resource*>* Server::getResourcePath(const int srcAddress, const int 
     topo.calculateUnweightedSingleShortestPathsTo(dstNode);
 
     if (srcNode->getNumPaths() == 0) {
-        ev << "not connected\n";
+        ev <<  "server:" << srcAddress << " and server:" << dstAddress << " not connected" << endl;
         return path;
     }
 
@@ -125,41 +107,36 @@ std::vector<Resource*>* Server::getResourcePath(const int srcAddress, const int 
     ev << "path from node " << node->getModule()->getFullPath() << endl;
     ev << "path   to node " << dstNode->getModule()->getFullPath() << endl;
     while (node != topo.getTargetNode()) {
+        if (node->getNumPaths() < 1) {
+            throw cRuntimeError("no path to destination server:%d", dstAddress);
+        }
         ev << "We are in " << node->getModule()->getFullPath() << endl;
-        ev << node->getDistanceToTarget() << " hops to go\n";
-        //ev << "There are " << node->getNumPaths() << " equally good directions, taking the first one\n";
+        // TODO we can verify that hops == 5 : node->getDistanceToTarget() == 5
+
         cTopology::LinkOut *link = node->getPath(0);
+        auto localGate = link->getLocalGate();
+        auto channel = localGate->getChannel() != nullptr ? localGate->getChannel() : localGate->getNextGate()->getChannel();
+        if (channel == nullptr) {
+            throw cRuntimeError("null pointer of channel for local gate %s", localGate->getFullName());
+        }
+        ev << "channel: " << (void*) channel << " module: " << (void*) node->getModule() << endl;
 
-        path->push_back((Resource*) node->getModule());
 
-//        auto currentM = node->getModule();
-#if 1
-        ev
-        //<< "Taking gate " << link->getLocalGate()->getFullName()
-        //<< " id:" << link->getLocalGate()->getId()
-        << " ptr:" << link->getLocalGate()
-        << " ch:" << (void*) link->getLocalGate()->getChannel()
-        << " next: " << (void*) link->getLocalGate()->getNextGate()->getChannel()
-        << " we arrive in "
-        << link->getRemoteNode()->getModule()->getFullPath()
-        //<< " on its gate " << link->getRemoteGate()->getFullName()
-        //<< " id:" << link->getRemoteGate()->getId()
-        << " ptr:" << link->getRemoteGate()
-        << endl;
-#endif
+        if (node != srcNode) {
+            // to skip source node and destination one
+            Resource* rm = network.getResourceByNedObject(node->getModule());
+            path->push_back(rm);
+        }
+        Resource* rc = network.getResourceByNedObject(channel);
+        path->push_back(rc);
 
         node = link->getRemoteNode();
-
-//        for (ChannelIterator it(currentM); !it.end(); it++) {
-//            cChannel* ch = it();
-//            ch->
-//        }
-
     }
 
+    ev << "results:" << endl;
 //    std::reverse(gatesIDs->begin(), gatesIDs->end());
-    for (auto i : *path) // TODO
-        ev << i << endl;
+    for (auto r : *path) // TODO
+        ev << (void*) r << " " << (void *) (r != nullptr ? r->getNedObj() : nullptr) << endl;
 
 
     return path;
@@ -189,6 +166,18 @@ void Server::handleSelfMessage(cMessage *msg)
 
         const int gateId = 0; // TODO get first gateId
         send(msg, gateId);
+    }
+
+    if (msg->isName("getResoursePath")) {
+
+        ev << "Resources:" << endl;
+        for (auto r : network.resources) {
+            ev << (void*) r << " " << (void *) r->getNedObj() << " " << r->getNedObj()->getFullPath() << endl;
+        }
+
+
+        auto path = getResourcePath(1, address);
+        (void) path;
     }
 }
 

@@ -26,7 +26,7 @@ void Switch::initialize()
     const double maxCapacity = par("maxCapacity");
     Resource* resource = new SwitchResource(this, 0, maxCapacity); // TODO what about id? can it be 'this' pointer?
     network.registerResource(resource);
-
+#if 0
     for (cModule::GateIterator it(this); !it.end(); it++) {
         cGate* gate = it();
 
@@ -43,8 +43,27 @@ void Switch::initialize()
             const double maxCapacity = ch->par("maxCapacity");
             Resource* resource = new LinkResource(ch, 0, maxCapacity); // TODO what about id? can it be 'this' pointer?
             network.registerResource(resource);
+        } else {
+            //throw cRuntimeError("null pointer of channel");
         }
     }
+#endif
+    for (cModule::GateIterator it(this); !it.end(); it++) {
+        cGate* gate = it();
+
+        assert(gate->isVector() == true);
+        if (gate->getType() != cGate::OUTPUT)
+            continue;
+        auto ch = gate->getChannel();
+
+        if (ch == nullptr)
+            continue;
+        const double maxCapacity = ch->par("maxCapacity");
+        Resource* resource = new LinkResource(ch, 0, maxCapacity); // TODO what about id? can it be 'this' pointer?
+        ev << (void*) ch << " " << (void*) resource << endl;
+        network.registerResource(resource);
+    }
+    ev << network.resources.size() << endl;
 }
 
 void Switch::handleMessage(cMessage *msg)
