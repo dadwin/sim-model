@@ -41,6 +41,7 @@ class Server : public cSimpleModule
     static Server* getServerByAddress(const int address);
 
     static std::vector<Resource*>* getResourcePath(const int srcAddress, const int dstAddress);
+    static std::vector<int>* getGatePath(const int srcAddress, const int dstAddress);
 };
 
 #endif

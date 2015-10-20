@@ -177,7 +177,7 @@ void Server::handleSelfMessage(cMessage *msg)
 
 
         auto path = getResourcePath(1, address);
-        (void) path;
+        auto path1 = getGatePath(1, address);
     }
 }
 
@@ -275,4 +275,57 @@ std::vector<int>* calculatePathBetweenTwoModules(cModule* const srcModule, cModu
         ev << i << endl;
 
     return gatesIDs;
+}
+
+
+std::vector<int>* Server::getGatePath(const int srcAddress, const int dstAddress) {
+    auto srcServer = Server::getServerByAddress(srcAddress);
+    auto dstServer = Server::getServerByAddress(dstAddress);
+
+    if (srcServer == nullptr) {
+        throw cRuntimeError("no server for source address: %d", srcAddress);
+    }
+
+    if (dstServer == nullptr) {
+        throw cRuntimeError("no server for destination address: %d", dstAddress);
+    }
+
+    std::vector<int>* path = new std::vector<int>();
+
+    cTopology topo;
+    topo.extractByProperty("node");
+    ev << topo.getNumNodes() << " topology size\n";
+
+    cTopology::Node* dstNode = topo.getNodeFor(dstServer);
+    cTopology::Node* srcNode = topo.getNodeFor(srcServer);
+    topo.calculateUnweightedSingleShortestPathsTo(dstNode);
+
+    if (srcNode->getNumPaths() == 0) {
+        ev <<  "server:" << srcAddress << " and server:" << dstAddress << " not connected" << endl;
+        return path;
+    }
+
+    cTopology::Node *node = srcNode;
+    ev << "path from node " << node->getModule()->getFullPath() << endl;
+    ev << "path   to node " << dstNode->getModule()->getFullPath() << endl;
+    while (node != topo.getTargetNode()) {
+        if (node->getNumPaths() < 1) {
+            throw cRuntimeError("no path to destination server:%d", dstAddress);
+        }
+        ev << "We are in " << node->getModule()->getFullPath() << endl;
+        // TODO we can verify that hops == 5 : node->getDistanceToTarget() == 5
+
+        cTopology::LinkOut *link = node->getPath(0);
+        path->push_back(link->getLocalGate()->getId());
+
+        node = link->getRemoteNode();
+    }
+
+    ev << "results:" << endl;
+//    std::reverse(gatesIDs->begin(), gatesIDs->end());
+    for (auto g : *path) // TODO
+        ev << g << endl;
+
+
+    return path;
 }

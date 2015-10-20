@@ -20,7 +20,7 @@ class Network {
 
 protected:
 public:
-    std::vector<Resource*> resources;
+    std::vector<Resource*> resources; // TODO it can be map <cComponent*, Resource*>
     std::vector<Flow*> flows;
 
 public:
