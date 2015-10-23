@@ -12,13 +12,11 @@
 #include <cmessage.h>
 #include "Server.h"
 #include "Resource.h"
+#include <vector>
 
 class Flow {
 
 protected:
-    double demand;
-    std::vector<long> path;
-    double allocation;
 
     double desiredAllocation;
     double previousAllocation;
@@ -29,26 +27,31 @@ protected:
     //cSimpleModule* owner;
     Server* srcServer; // owner of flow
     Server* dstServer;
+    int srcAddress; // NOTE addresses can be parameters of Server,
+    int dstAddress; // and be retrieved through par("address")
 
-    cMessage* event;
+    cMessage* event; // NOTE don't delete it in handleMessage()
+    std::vector<Resource*>* path;
+    std::vector<int>* gatePath;
 
 public:
 
-
-
-    Flow(const long id, const double desiredAllocation, const std::vector<long>& path) {
+    Flow(const double desiredAllocation, const simtime_t startTime, const simtime_t endTime, std::vector<Resource*>* path, std::vector<int>* gatePath) {
 
         //this->id = id; // TODO is it needed?
         this->desiredAllocation = desiredAllocation;
         this->currentAllocation = 0.0;
         this->previousAllocation = 0.0;
+        this->startTime = startTime;
+        this->endTime = endTime;
+        this->path = path;
+        this->gatePath = gatePath;
 
         // when event is delivered, module knows about flow via the Flow parameter
         event = new cMessage("FlowMessage", 0);
-        auto par = new cMsgPar("Flow");
+        auto par = new cMsgPar("flow");
         par->setPointerValue(this);
         event->addPar(par);
-
     }
 /*
     Flow(long id, double demand, const long* path, const size_t path_size)
@@ -81,11 +84,33 @@ public:
         return srcServer;
     }
 
+    int getSrcAddress() const {
+        return srcAddress;
+    }
+
+    int getDstAddress() const {
+        return dstAddress;
+    }
+
     void updateEndTime() {
-        simtime_t newEndTime = startTime + (endTime - startTime)*currentAllocation/desiredAllocation;
+        simtime_t newEndTime;
+        if (previousAllocation == 0) {
+            // this flow just added to network
+            newEndTime = startTime + (endTime - startTime)*desiredAllocation/currentAllocation;
+        } else {
+            newEndTime = startTime + (endTime - startTime)*previousAllocation/currentAllocation;
+        }
         endTime = newEndTime;
     }
 
+    int getNextGateId() const {
+        if (gatePath->size() == 0)
+            throw cRuntimeError("gatePath is zero-sized");
+
+        int nextGateId = gatePath->front();
+        gatePath->erase(gatePath->begin());
+        return nextGateId;
+    }
 
 
     bool operator==(const Flow& f) {
@@ -100,33 +125,38 @@ public:
 
     long getId() const {
         //return id;
-        throw std::invalid_argument("bad method invokation");
+        throw std::invalid_argument("bad method invocation");
         return 0;
     }
 
     double getDemand() const {
-        return demand;
+        return desiredAllocation;
     }
 
-    const std::vector<long> getPath() const {
+    const std::vector<Resource*>* getPath() const {
         return path;
     }
 
     double getAllocation() const {
-        return allocation;
+        return currentAllocation;
     }
 
     void setAllocation(double allocation) {
-        if (allocation > demand) {
-            throw std::invalid_argument("allocation is greater than demand");
+        if (allocation > desiredAllocation) {
+            throw cRuntimeError("allocation is greater than demand");
         }
-        this->allocation = allocation;
+        previousAllocation = currentAllocation;
+        currentAllocation = allocation;
     }
 
-    bool runThroughResource(const Resource* r) const {
+    bool runThroughResource(const Resource* resource) const {
         bool running = false;
-        for (auto node : path) {
-            if (node == r->getId()) {
+
+        if (resource == nullptr)
+            return running;
+
+        for (auto r : *path) {
+            if (r == resource) {
                 running = true;
                 break;
             }

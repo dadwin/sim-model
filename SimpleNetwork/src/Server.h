@@ -22,7 +22,8 @@
  * TODO - Generated class
  */
 
-class Resource; // forward declaration
+class Flow;
+class Resource;
 
 class Server : public cSimpleModule
 {
@@ -34,7 +35,7 @@ class Server : public cSimpleModule
     void handleSelfMessage(cMessage *msg);
 
     void addFlow();
-    void removeFlow();
+    void removeFlow(Flow* flow);
 
   public:
     int getAddress() const;

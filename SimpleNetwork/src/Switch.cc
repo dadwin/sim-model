@@ -66,5 +66,20 @@ void Switch::initialize()
 
 void Switch::handleMessage(cMessage *msg)
 {
-    // TODO - Generated method body
+    std::cout << getFullPath() << endl;
+    if (msg->isSelfMessage()) {
+        handleSelfMessage(msg);
+        return;
+    }
+
+    if (msg->isName("DataMessage")) {
+
+        Flow* flow = (Flow*) msg->par("flow").pointerValue();
+
+        const int gateId = flow->getNextGateId();
+        send(msg, gateId);
+    }
+}
+
+void Switch::handleSelfMessage(cMessage *msg) {
 }

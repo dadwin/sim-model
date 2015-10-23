@@ -33,12 +33,12 @@ public:
         resources.push_back(r);
     }
 
-    Resource* getResourceByNedObject(const cObject* const obj) const {
-        if (obj == nullptr) {
-            throw cRuntimeError("'obj' is null pointer");
+    Resource* getResourceByNedObject(const cComponent* const comp) const {
+        if (comp == nullptr) {
+            throw cRuntimeError("'comp' is null pointer");
         }
         for (auto r : resources) {
-            if (r->getNedObj() == obj)
+            if (r->getNedComponent() == comp)
                 return r;
         }
         return nullptr;

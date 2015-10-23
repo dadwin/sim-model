@@ -238,11 +238,12 @@ protected:
                     throw std::invalid_argument("bad stage type");
                 }
 
-                for (long rId : f->getPath()) {
-                    Resource* r = resources.at(rId);//getResourceById(resources, rId);
+                for (auto r : *f->getPath()) {
+                    // TODO verification required!
+                    //Resource* r = resources.at(rId);//getResourceById(resources, rId);
                     if (r == nullptr)
-                        throw std::runtime_error("null resource for id " +  std::to_string(rId));
-                    r->decreaseCapacity(f->getAllocation());
+                        throw std::runtime_error("null resource for flow path");
+                    r->changeCapacity(-f->getAllocation());
                 }
             }
 
@@ -270,13 +271,13 @@ public:
     static void printFlows(const std::vector<Flow*>& flows) {
         std::cout << "Flows:\n";
         for (const Flow* f : flows)
-            std::cout << "id:" << f->getId() << " d:" << f->getDemand() << " a:" << f->getAllocation() << "\n";
+            std::cout << " d:" << f->getDemand() << " a:" << f->getAllocation() << "\n";
     }
 
     static void printResources(const std::vector<Resource*>& resources) {
         std::cout << "Resources:\n";
         for (const Resource* r : resources)
-            std::cout << "id:" << r->getId() << " mc:" << r->getMaxCapacity() << " c:" << r->getCapacity() << "\n";
+            std::cout << " mc:" << r->getMaxCapacity() << " c:" << r->getCapacity() << " " << r->getNedComponent()->getFullPath() << "\n";
     }
 
 };

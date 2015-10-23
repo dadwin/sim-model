@@ -58,12 +58,16 @@ void Server::initialize()
     }
 
 
-    if (address == 11) {
+    if (address == 1) {
         // TODO for testing
-        scheduleAt(0, new cMessage("getResoursePath", 0));
+        scheduleAt(0, new cMessage("Test1", 0));
     }
-
-
+    if (address == 2) {
+        scheduleAt(2, new cMessage("Test1", 0));
+    }
+    if (address = 5) {
+        scheduleAt(3, new cMessage("Test1", 0));
+    }
 }
 
 Server* Server::getServerByAddress(const int address) {
@@ -136,7 +140,7 @@ std::vector<Resource*>* Server::getResourcePath(const int srcAddress, const int 
     ev << "results:" << endl;
 //    std::reverse(gatesIDs->begin(), gatesIDs->end());
     for (auto r : *path) // TODO
-        ev << (void*) r << " " << (void *) (r != nullptr ? r->getNedObj() : nullptr) << endl;
+        ev << (void*) r << " " << (void *) (r != nullptr ? r->getNedComponent() : nullptr) << endl;
 
 
     return path;
@@ -144,6 +148,7 @@ std::vector<Resource*>* Server::getResourcePath(const int srcAddress, const int 
 
 void Server::handleMessage(cMessage *msg)
 {
+    std::cout << getFullPath() << endl;
     if (msg->isSelfMessage()) {
         handleSelfMessage(msg);
         return;
@@ -151,6 +156,16 @@ void Server::handleMessage(cMessage *msg)
 
     if (msg->isName("FlowMessage")) {
         // TODO what should we do here?
+    }
+
+    if (msg->isName("DataMessage")) {
+        // message arrived!
+        ev << "message arrived!" << endl;
+
+        Flow* flow = (Flow*) msg->par("flow").pointerValue();
+        removeFlow(flow);
+
+        //delete msg; // NOTE Message is part of Flow and Flow is owner of it
     }
 }
 
@@ -161,49 +176,45 @@ void Server::handleSelfMessage(cMessage *msg)
         // first we need to calculate path along which message will be transmitted
 
 
-        // TODO calculate path
+        Flow* flow = (Flow*) msg->par("flow").pointerValue();
 
-
-        const int gateId = 0; // TODO get first gateId
+        const int gateId = flow->getNextGateId();
+        msg->setName("DataMessage");
         send(msg, gateId);
     }
 
-    if (msg->isName("getResoursePath")) {
-
-        ev << "Resources:" << endl;
-        for (auto r : network.resources) {
-            ev << (void*) r << " " << (void *) r->getNedObj() << " " << r->getNedObj()->getFullPath() << endl;
-        }
-
-
-        auto path = getResourcePath(1, address);
-        auto path1 = getGatePath(1, address);
+    if (msg->isName("Test1")) {
+        addFlow();
+        delete msg;
     }
 }
 
 
 void Server::addFlow() {
 
-    Server src;
-    Server dst;
+    //Server src;
+    //Server dst;
 
 
     // calculate path from src to dst
-    // path is sequence of cModules with @resource property
+    // path is sequence of cModules with @node property
+    auto path = getResourcePath(address, 11);
+    auto gatePath = getGatePath(address, 11);
 
-    std::vector<long> path;
-    double desiredAllocation = 10.0; // TODO
+    double desiredAllocation = 10.0;
 
-    simtime_t startTime;
-    simtime_t endTime;
+    simtime_t startTime = 0.0;
+    simtime_t endTime = 1.0;
 
-    Flow* flow = new Flow(0/*id*/, desiredAllocation, path);
+    Flow* flow = new Flow(desiredAllocation, startTime, endTime, path, gatePath);
 
 
     // add flow to list of all flows
     network.flows.push_back(flow);
 
     Solver::solve(network.flows, network.resources);
+    Solver::printFlows(network.flows);
+    Solver::printResources(network.resources);
 
     // find reduced flows and recalculate end time for them
     for (auto f : network.flows) {
@@ -214,20 +225,52 @@ void Server::addFlow() {
             // update flows scheduling
             auto event = f->getEvent();
             f->sourceServer()->cancelEvent(event);
-            f->sourceServer()->scheduleAt(f->getEndTime(), event);
+            f->sourceServer()->scheduleAt(simTime() + f->getEndTime(), event);
         }
     }
 
-    // create event for omnetpp for new flow
-    scheduleAt(flow->getEndTime(), flow->getEvent());
-
     // TODO update capacity for switches and links
+    for (auto r : network.resources) {
+        r->getNedComponent()->par("capacity").setDoubleValue(r->getCapacity());
+    }
 
 
+    // create event for omnetpp for new flow
+    scheduleAt(simTime() + flow->getEndTime(), flow->getEvent());
 }
 
-void Server::removeFlow() {
+void Server::removeFlow(Flow* flow) {
 
+    double allocation = flow->getAllocation();
+    for (auto r : *flow->getPath()) {
+        r->changeCapacity(allocation);
+    }
+
+
+    auto it = std::find(network.flows.begin(), network.flows.end(), flow);
+    if (it == network.flows.end()) {
+        throw cRuntimeError("impossible error");
+    }
+    network.flows.erase(it);
+    delete flow;
+
+
+    Solver::solve(network.flows, network.resources);
+    Solver::printFlows(network.flows);
+    Solver::printResources(network.resources);
+
+    // find increased flows and recalculate end time for them
+    for (auto f : network.flows) {
+        if (f->isIncreased()) {
+            f->updateEndTime();
+
+
+            // update flows scheduling
+            auto event = f->getEvent();
+            f->sourceServer()->cancelEvent(event);
+            f->sourceServer()->scheduleAt(simTime() + f->getEndTime(), event);
+        }
+    }
 }
 
 

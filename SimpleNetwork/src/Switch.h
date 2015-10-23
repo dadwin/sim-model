@@ -26,6 +26,7 @@ class Switch : public cSimpleModule
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
+    void handleSelfMessage(cMessage *msg);
 };
 
 #endif

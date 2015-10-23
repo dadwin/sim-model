@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 
-class cObject;
+class cComponent;
 
 class Resource {
 public:
@@ -17,13 +17,13 @@ public:
 
     virtual long getId() const = 0;
 
-    virtual cObject* getNedObj() const = 0;
+    virtual cComponent* getNedComponent() const = 0;
 
     virtual double getMaxCapacity() const = 0;
 
     virtual double getCapacity() const = 0;
 
-    virtual void decreaseCapacity(const double delta) = 0;
+    virtual void changeCapacity(const double delta) = 0;
 
     bool isBusy() const {
         return getMaxCapacity() == getCapacity();
@@ -40,14 +40,14 @@ class SwitchResource : public Resource {
 
 protected:
     long id;
-    cObject* nedObj;
+    cComponent* nedComponent;
     double maxCapacity;
     double capacity;
 
 public:
 
-    SwitchResource(cObject* nedObj, const long id, const double maxCapacity) {
-        this->nedObj = nedObj;
+    SwitchResource(cComponent* nedComponent, const long id, const double maxCapacity) {
+        this->nedComponent = nedComponent;
         this->id = id;
         this->maxCapacity = maxCapacity;
         this->capacity = maxCapacity;
@@ -57,8 +57,8 @@ public:
         return id;
     }
 
-    virtual cObject* getNedObj() const {
-        return nedObj;
+    virtual cComponent* getNedComponent() const {
+        return nedComponent;
     }
 
     virtual double getMaxCapacity() const {
@@ -69,30 +69,32 @@ public:
         return capacity;
     }
 
-    virtual void decreaseCapacity(const double delta) {
-        if (delta < 0.0) {
-            throw std::invalid_argument("decreasing with negative value");
+    virtual void changeCapacity(const double delta) {
+        if (delta <= 0.0) {
+            if (capacity + delta < 0) {
+                throw std::invalid_argument("decreasing capacity down to negative value");
+            }
+        } else {
+            if (capacity + delta > maxCapacity ) {
+                throw std::invalid_argument("increasing capacity up to maxCapacity value");
+            }
         }
-        if (capacity - delta < 0) {
-            throw std::invalid_argument("decreasing down to negative value");
-        }
-        capacity -= delta;
+        capacity += delta;
     }
-
 };
 
 class LinkResource : public Resource {
 
 protected:
     long id;
-    cObject* nedObj;
+    cComponent* nedComponent;
     double maxCapacity;
     double capacity;
 
 public:
 
-    LinkResource(cObject* nedObj, const long id, const double maxCapacity) {
-        this->nedObj = nedObj;
+    LinkResource(cComponent* nedComponent, const long id, const double maxCapacity) {
+        this->nedComponent = nedComponent;
         this->id = id;
         this->maxCapacity = maxCapacity;
         this->capacity = maxCapacity;
@@ -102,8 +104,8 @@ public:
         return id;
     }
 
-    virtual cObject* getNedObj() const {
-        return nedObj;
+    virtual cComponent* getNedComponent() const {
+        return nedComponent;
     }
 
     virtual double getMaxCapacity() const {
@@ -114,14 +116,17 @@ public:
         return capacity;
     }
 
-    virtual void decreaseCapacity(const double delta) {
-        if (delta < 0.0) {
-            throw std::invalid_argument("decreasing with negative value");
+    virtual void changeCapacity(const double delta) {
+        if (delta <= 0.0) {
+            if (capacity + delta < 0) {
+                throw std::invalid_argument("decreasing capacity down to negative value");
+            }
+        } else {
+            if (capacity + delta > maxCapacity ) {
+                throw std::invalid_argument("increasing capacity up to maxCapacity value");
+            }
         }
-        if (capacity - delta < 0) {
-            throw std::invalid_argument("decreasing down to negative value");
-        }
-        capacity -= delta;
+        capacity += delta;
     }
 
 };
