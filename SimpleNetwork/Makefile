@@ -28,7 +28,7 @@ PROJECTRELATIVE_PATH =
 O = $(PROJECT_OUTPUT_DIR)/$(CONFIGNAME)/$(PROJECTRELATIVE_PATH)
 
 # Object files for local .cc and .msg files
-OBJS = $O/src/Switch.o $O/src/Network.o $O/src/Server.o
+OBJS = $O/src/Routing.o $O/src/Switch.o $O/src/Net.o $O/src/Server.o
 
 # Message files
 MSGFILES =
@@ -116,21 +116,21 @@ depend:
 	$(Q)$(MAKEDEPEND) $(INCLUDE_PATH) -f Makefile -P\$$O/ -- $(MSG_CC_FILES)  ./*.cc src/*.cc src/results/*.cc
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
-$O/src/Network.o: src/Network.cc \
-	src/Flow.h \
-	src/Network.h \
+$O/src/Net.o: src/Net.cc \
+	src/Net.h \
 	src/Resource.h \
+	src/Routing.h \
 	src/Server.h
+$O/src/Routing.o: src/Routing.cc \
+	src/Routing.h
 $O/src/Server.o: src/Server.cc \
 	src/Flow.h \
-	src/Network.h \
+	src/Net.h \
 	src/Resource.h \
+	src/Routing.h \
 	src/Server.h \
 	src/Solver.h
 $O/src/Switch.o: src/Switch.cc \
-	src/Flow.h \
-	src/Network.h \
 	src/Resource.h \
-	src/Server.h \
 	src/Switch.h
 

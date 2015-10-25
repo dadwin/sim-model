@@ -17,7 +17,8 @@
 #define __SIMPLENETWORK_SERVER_H_
 
 #include <omnetpp.h>
-
+#include "Routing.h"
+#include "Net.h"
 /**
  * TODO - Generated class
  */
@@ -29,6 +30,8 @@ class Server : public cSimpleModule
 {
   protected:
     int address;
+    Routing* routing;
+    Net* net;
 
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
@@ -39,10 +42,7 @@ class Server : public cSimpleModule
 
   public:
     int getAddress() const;
-    static Server* getServerByAddress(const int address);
 
-    static std::vector<Resource*>* getResourcePath(const int srcAddress, const int dstAddress);
-    static std::vector<int>* getGatePath(const int srcAddress, const int dstAddress);
 };
 
 #endif
