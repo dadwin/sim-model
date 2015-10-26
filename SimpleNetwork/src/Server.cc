@@ -16,7 +16,6 @@
 #include "Server.h"
 #include "Flow.h"
 #include "Net.h"
-#include "Solver.h"
 #include <cexception.h>
 
 #include <algorithm>
@@ -53,16 +52,16 @@ void Server::initialize()
     }
 
 
-    if (address == 1) {
-        // TODO for testing
-        scheduleAt(0, new cMessage("Test1", 0));
-    }
-    if (address == 2) {
-        scheduleAt(2, new cMessage("Test1", 0));
-    }
-    if (address == 5) {
-        scheduleAt(3, new cMessage("Test1", 0));
-    }
+//    if (address == 1) {
+//        // TODO for testing
+//        scheduleAt(0, new cMessage("Test1", 0));
+//    }
+//    if (address == 2) {
+//        scheduleAt(2, new cMessage("Test1", 0));
+//    }
+//    if (address == 5) {
+//        scheduleAt(3, new cMessage("Test1", 0));
+//    }
 }
 
 
@@ -83,7 +82,7 @@ void Server::handleMessage(cMessage *msg)
         ev << "message arrived!" << endl;
 
         Flow* flow = (Flow*) msg->par("flow").pointerValue();
-        removeFlow(flow);
+        net->removeFlow(flow);
 
         //delete msg; // NOTE Message is part of Flow and Flow is owner of it
     }
@@ -104,102 +103,15 @@ void Server::handleSelfMessage(cMessage *msg)
     }
 
     if (msg->isName("Test1")) {
-        addFlow();
+        net->addFlow(1, 11, 0, 1, 10);
         delete msg;
     }
 }
 
+void Server::schedule(simtime_t t, cMessage* msg) {
+    Enter_Method_Silent();
 
-void Server::addFlow() {
-
-    // Input parameters for flow:
-    // * source server - a node from which flow runs
-    // * destination server - a node toward which flow runs
-    // * start time - time when flow starts running
-    // * desired allocation - demand of capacity of network resources that flow wants to obtain
-    // * end time - time when flow ends running, if its allocation is equal to desired allocation.
-    // Relation between times and allocation is as following:
-    //     (end time - start time)*allocation = constant
-    // This constant is a amount of data transferred by a flow.
-
-    //Server src;
-    //Server dst;
-
-
-    // calculate path from src to dst
-    // path is sequence of cModules with @node property
-    auto path = net->getResourcePath(address, 11);
-    auto gatePath = net->getGatePath(address, 11);
-
-    double desiredAllocation = 10.0;
-
-    simtime_t startTime = 0.0;
-    simtime_t endTime = 1.0;
-
-    Flow* flow = new Flow(desiredAllocation, startTime, endTime, path, gatePath);
-
-
-    // add flow to list of all flows
-    network.flows.push_back(flow);
-
-    Solver::solve(network.flows, network.resources);
-    Solver::printFlows(network.flows);
-    Solver::printResources(network.resources);
-
-    // find reduced flows and recalculate end time for them
-    for (auto f : network.flows) {
-        if (f->isReduced()) {
-            f->updateEndTime();
-
-
-            // update flows scheduling
-            auto event = f->getEvent();
-            f->sourceServer()->cancelEvent(event);
-            f->sourceServer()->scheduleAt(simTime() + f->getEndTime(), event);
-        }
-    }
-
-    // TODO update capacity for switches and links
-    for (auto r : network.resources) {
-        r->getNedComponent()->par("capacity").setDoubleValue(r->getCapacity());
-    }
-
-
-    // create event for omnetpp for new flow
-    scheduleAt(simTime() + flow->getEndTime(), flow->getEvent());
+    scheduleAt(t, msg);
 }
 
-void Server::removeFlow(Flow* flow) {
-
-    double allocation = flow->getAllocation();
-    for (auto r : *flow->getPath()) {
-        r->changeCapacity(allocation);
-    }
-
-
-    auto it = std::find(network.flows.begin(), network.flows.end(), flow);
-    if (it == network.flows.end()) {
-        throw cRuntimeError("impossible error");
-    }
-    network.flows.erase(it);
-    delete flow;
-
-
-    Solver::solve(network.flows, network.resources);
-    Solver::printFlows(network.flows);
-    Solver::printResources(network.resources);
-
-    // find increased flows and recalculate end time for them
-    for (auto f : network.flows) {
-        if (f->isIncreased()) {
-            f->updateEndTime();
-
-
-            // update flows scheduling
-            auto event = f->getEvent();
-            f->sourceServer()->cancelEvent(event);
-            f->sourceServer()->scheduleAt(simTime() + f->getEndTime(), event);
-        }
-    }
-}
 

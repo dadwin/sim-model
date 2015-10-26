@@ -26,7 +26,7 @@ protected:
     simtime_t endTime;
     //cSimpleModule* owner;
     Server* srcServer; // owner of flow
-    Server* dstServer;
+    //Server* dstServer;
     int srcAddress; // NOTE addresses can be parameters of Server,
     int dstAddress; // and be retrieved through par("address")
 
@@ -36,7 +36,7 @@ protected:
 
 public:
 
-    Flow(const double desiredAllocation, const simtime_t startTime, const simtime_t endTime, std::vector<Resource*>* path, std::vector<int>* gatePath) {
+    Flow(Server* sourceServer, const double desiredAllocation, const simtime_t startTime, const simtime_t endTime, std::vector<Resource*>* path, std::vector<int>* gatePath) {
 
         //this->id = id; // TODO is it needed?
         this->desiredAllocation = desiredAllocation;
@@ -46,6 +46,7 @@ public:
         this->endTime = endTime;
         this->path = path;
         this->gatePath = gatePath;
+        this->srcServer = sourceServer;
 
         // when event is delivered, module knows about flow via the Flow parameter
         event = new cMessage("FlowMessage", 0);
@@ -88,9 +89,9 @@ public:
         return srcAddress;
     }
 
-    int getDstAddress() const {
-        return dstAddress;
-    }
+//    int getDstAddress() const {
+//        return dstAddress;
+//    }
 
     void updateEndTime() {
         simtime_t newEndTime;

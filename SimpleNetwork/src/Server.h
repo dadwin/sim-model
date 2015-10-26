@@ -37,10 +37,8 @@ class Server : public cSimpleModule
     virtual void handleMessage(cMessage *msg);
     void handleSelfMessage(cMessage *msg);
 
-    void addFlow();
-    void removeFlow(Flow* flow);
-
   public:
+    void schedule(simtime_t t, cMessage* msg);
     int getAddress() const;
 
 };

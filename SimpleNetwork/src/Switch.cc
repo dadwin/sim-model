@@ -13,19 +13,20 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+#include "Flow.h"
 #include "Switch.h"
-#include "Network.h"
 #include "Resource.h"
 
-#include <cassert>
 
 Define_Module(Switch);
 
 void Switch::initialize()
 {
+    net = check_and_cast<Net*>(getModuleByPath("net"));
+
     const double maxCapacity = par("maxCapacity");
     Resource* resource = new SwitchResource(this, 0, maxCapacity); // TODO what about id? can it be 'this' pointer?
-    network.registerResource(resource);
+    net->registerResource(resource);
 
     // identifying channels as resources
     // we iterate through all OUTPUT gates and those which have underlying channels,
@@ -60,7 +61,7 @@ void Switch::initialize()
         }
         const double maxCapacity = channel->par("maxCapacity");
         Resource* resource = new LinkResource(channel, 0, maxCapacity); // TODO what about id? can it be 'this' pointer?
-        network.registerResource(resource);
+        net->registerResource(resource);
     }
 }
 

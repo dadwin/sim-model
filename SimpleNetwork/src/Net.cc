@@ -4,10 +4,11 @@
  *  Created on: Oct 12, 2015
  *      Author: aarlan
  */
+#include "Flow.h"
 #include "Net.h"
 #include "Resource.h"
 #include "Server.h"
-#include <ctopology.h>
+#include "Solver.h"
 
 Define_Module(Net);
 
@@ -16,13 +17,25 @@ void Net::initialize() {
     flows.clear();
 
     routing = check_and_cast<Routing*>(getModuleByPath("routing"));
+
+
+    scheduleAt(0, new cMessage("Test1", 0));
 }
 
 void Net::handleMessage(cMessage *msg) {
+    Enter_Method_Silent();
+
+    if (msg->isName("Test1")) {
+        addFlow(1, 11, 0, 1, 100);
+        addFlow(1, 11, 0, 1, 100);
+        addFlow(1, 11, 0, 1, 50);
+        addFlow(1, 11, 0, 1, 25);
+    }
+
+
 }
 
 void Net::registerResource(Resource* r) {
-
     resources.push_back(r);
 }
 
@@ -104,10 +117,8 @@ std::vector<Resource*>* Net::getResourcePath(const int srcAddress, const int dst
     }
 
     ev << "results:" << endl;
-//    std::reverse(gatesIDs->begin(), gatesIDs->end());
     for (auto r : *path) // TODO
         ev << (void*) r << " " << (void *) (r != nullptr ? r->getNedComponent() : nullptr) << endl;
-
 
     return path;
 }
@@ -165,3 +176,94 @@ std::vector<int>* Net::getGatePath(const int srcAddress, const int dstAddress) {
 
     return path;
 }
+
+void Net::addFlow(const int sourceAddress, const int destAddress,
+                  const simtime_t startTime, const simtime_t endTime,
+                  const double desiredAllocation) {
+
+    // Input parameters for flow:
+    // * source server - a node from which flow runs
+    // * destination server - a node toward which flow runs
+    // * start time - time when flow starts running
+    // * desired allocation - demand of capacity of network resources that flow wants to obtain
+    // * end time - time when flow ends running, if its allocation is equal to desired allocation.
+    // Relation between times and allocation is as following:
+    //     (end time - start time)*allocation = constant
+    // This constant is a amount of data transferred by a flow.
+
+    // calculate path from src to dst
+    // path is sequence of cModules with @node property
+    auto path = getResourcePath(sourceAddress, destAddress);
+    auto gatePath = getGatePath(sourceAddress, destAddress);
+
+    Flow* flow = new Flow(routing->getServerByAddress(sourceAddress), desiredAllocation, startTime, endTime, path, gatePath);
+
+    // add flow to list of all flows
+    flows.push_back(flow);
+
+    Solver::solve(flows, resources);
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    // find reduced flows and recalculate end time for them
+    for (auto f : flows) {
+        if (f->isReduced()) {
+            f->updateEndTime();
+
+
+            // update flows scheduling
+            auto event = f->getEvent();
+            f->sourceServer()->cancelEvent(event);
+            f->sourceServer()->scheduleAt(f->getEndTime(), event);
+        }
+    }
+
+    // TODO update capacity for switches and links
+    for (auto r : resources) {
+        r->getNedComponent()->par("capacity").setDoubleValue(r->getCapacity());
+    }
+
+
+    // create event for omnetpp for new flow
+    flow->sourceServer()->schedule(flow->getEndTime(), flow->getEvent());
+
+    ev << simTime() << ": Flow added" <<  endl;
+}
+
+void Net::removeFlow(Flow* flow) {
+
+    // since flow should be removed,
+    // its allocation from all related resources should be freed
+    double allocation = flow->getAllocation();
+    for (auto r : *flow->getPath()) {
+        r->changeCapacity(allocation);
+    }
+
+
+    auto it = std::find(flows.begin(), flows.end(), flow);
+    if (it == flows.end()) {
+        throw cRuntimeError("flow to be deleted was not found");
+    }
+    flows.erase(it);
+    delete flow;
+
+
+    Solver::solve(flows, resources);
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    // find increased flows and recalculate end time for them
+    for (auto f : flows) {
+        if (f->isIncreased()) {
+            f->updateEndTime();
+
+
+            // update flows scheduling
+            auto event = f->getEvent();
+            f->sourceServer()->cancelEvent(event);
+            f->sourceServer()->scheduleAt(f->getEndTime(), event);
+        }
+    }
+    ev << simTime() << ": Flow deleted" << endl;
+}
+

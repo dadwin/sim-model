@@ -19,6 +19,12 @@ package simplenetwork.src;
 
 import ned.IdealChannel;
 
+simple Net
+{
+    parameters:
+        @display("i=misc/globe");
+}
+
 channel DataChannel extends ned.IdealChannel
 {
     parameters:
@@ -59,7 +65,7 @@ module Rack
 {
     parameters:
         @display("i=device/router;bgb=400,200");
-        int size @prompt("Number of servers in one rack") = default(10);
+        int size @prompt("Number of servers in one rack") = default(3);
 
     gates:
         inout port;
@@ -88,7 +94,7 @@ module Hall
 {
     parameters:
         @display("i=device/lan-bus;bgb=180,130");
-        int size @prompt("Number of racks in one hall") = default(5);
+        int size @prompt("Number of racks in one hall") = default(2);
 
     gates:
         inout port;
@@ -133,7 +139,7 @@ module Continent
 {
     parameters:
         //@display("i=maps/africa");
-        int size @prompt("Number of DCs in one continent") = default(2);
+        int size @prompt("Number of DCs in one continent") = default(1);
 
     gates:
         inout port;
@@ -155,12 +161,14 @@ network Storage
 {
     parameters:
         @display("i=misc/cloud");
-        int size @prompt("Number of continents in storage") = default(2);
+        int size @prompt("Number of continents in storage") = default(1);
 
     gates:
         //inout port;
 
     submodules:
+        routing : Routing;
+        net : Net;
         continent[size] : Continent;
 //        c1: Continent {
 //            parameters:
@@ -181,7 +189,7 @@ network Storage
         }
     connections allowunconnected:
         for k=1..size {
-            switch.port[k] <--> continent[k-1].port;
+            switch.port[k] <--> DataChannel <--> continent[k-1].port;
         }
 //        switch.port[1] <--> DataChannel <--> c1.port;
 //        switch.port[2] <--> DataChannel <--> c2.port;

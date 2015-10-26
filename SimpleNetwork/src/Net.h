@@ -29,6 +29,11 @@ public:
     std::vector<Resource*>* getResourcePath(const int srcAddress, const int dstAddress);
     std::vector<int>* getGatePath(const int srcAddress, const int dstAddress);
 
+    void addFlow(const int sourceAddress, const int destAddress,
+            const simtime_t startTime, const simtime_t endTime,
+            const double desiredAllocation);
+    void removeFlow(Flow* flow);
+
 protected:
     Routing* routing;
     std::mutex mutex;

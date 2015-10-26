@@ -17,6 +17,7 @@
 #define __SIMPLENETWORK_SWITCH_H_
 
 #include <omnetpp.h>
+#include "Net.h"
 
 /**
  * TODO - Generated class
@@ -27,6 +28,8 @@ class Switch : public cSimpleModule
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
     void handleSelfMessage(cMessage *msg);
+
+    Net* net;
 };
 
 #endif
