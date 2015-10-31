@@ -23,6 +23,7 @@ simple Net
 {
     parameters:
         @display("i=misc/globe");
+        xml profile = xmldoc("profile.xml");
 }
 
 channel DataChannel extends ned.IdealChannel

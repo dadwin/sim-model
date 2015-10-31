@@ -9,6 +9,7 @@
 #include "Resource.h"
 #include "Server.h"
 #include "Solver.h"
+#include <string>
 
 Define_Module(Net);
 
@@ -19,19 +20,45 @@ void Net::initialize() {
     routing = check_and_cast<Routing*>(getModuleByPath("routing"));
 
 
-    scheduleAt(0, new cMessage("Test1", 0));
+    profile.insert(std::pair<int, FlowParameters*>(2, new FlowParameters(1000, 0, 10, 2, 11)));
+    profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(1000, 0, 10, 1, 11)));
+    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 1, 10, 1, 11)));
+    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 2, 10, 1, 11)));
+    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 3, 10, 1, 11)));
+    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 4, 10, 1, 11)));
+    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 5, 10, 1, 11)));
+
+
+    return; //TODO
+
+    // reading flow profile
+    cXMLElement* root = getParentModule()->par("profile").xmlValue();
+    cXMLElementList tasks = root->getChildrenByTagName("flow");
+    for (auto it = tasks.begin(); it != tasks.end(); it++) {
+        cXMLElement* flow = *it;
+        cXMLElement* flowSourceElem = flow->getFirstChildWithTag("source");
+
+        if (flowSourceElem == nullptr) {
+            throw cRuntimeError("XML read error: source type is missing");
+        }
+
+        std::string source = flowSourceElem->getNodeValue();
+    }
+
+}
+
+std::vector<Net::FlowParameters*> Net::getFlowProfile(const int sourceAddress) const {
+
+    std::vector<FlowParameters*> list;
+    for (auto it = profile.cbegin(); it != profile.cend(); ++it) {
+        if ((*it).first == sourceAddress) {
+            list.push_back((*it).second);
+        }
+    }
+    return list;
 }
 
 void Net::handleMessage(cMessage *msg) {
-    Enter_Method_Silent();
-
-    if (msg->isName("Test1")) {
-        addFlow(1, 11, 0, 1, 100);
-        addFlow(1, 11, 0, 1, 100);
-        addFlow(1, 11, 0, 1, 50);
-        addFlow(1, 11, 0, 1, 25);
-    }
-
 
 }
 
@@ -58,8 +85,8 @@ Resource* Net::getResourceByNedObject(const cComponent* const comp) {
     return ret;
 }
 
-
-std::vector<Resource*>* Net::getResourcePath(const int srcAddress, const int dstAddress) {
+std::vector<Resource*>* Net::getResourcePath(const int srcAddress,
+        const int dstAddress) {
     auto srcServer = routing->getServerByAddress(srcAddress);
     auto dstServer = routing->getServerByAddress(dstAddress);
 
@@ -68,7 +95,8 @@ std::vector<Resource*>* Net::getResourcePath(const int srcAddress, const int dst
     }
 
     if (dstServer == nullptr) {
-        throw cRuntimeError("no server for destination address: %d", dstAddress);
+        throw cRuntimeError("no server for destination address: %d",
+                dstAddress);
     }
 
     std::vector<Resource*>* path = new std::vector<Resource*>();
@@ -82,7 +110,8 @@ std::vector<Resource*>* Net::getResourcePath(const int srcAddress, const int dst
     topo.calculateUnweightedSingleShortestPathsTo(dstNode);
 
     if (srcNode->getNumPaths() == 0) {
-        ev <<  "server:" << srcAddress << " and server:" << dstAddress << " not connected" << endl;
+        ev << "server:" << srcAddress << " and server:" << dstAddress
+                << " not connected" << endl;
         return path;
     }
 
@@ -98,12 +127,16 @@ std::vector<Resource*>* Net::getResourcePath(const int srcAddress, const int dst
 
         cTopology::LinkOut *link = node->getPath(0);
         auto localGate = link->getLocalGate();
-        auto channel = localGate->getChannel() != nullptr ? localGate->getChannel() : localGate->getNextGate()->getChannel();
+        auto channel =
+                localGate->getChannel() != nullptr ?
+                        localGate->getChannel() :
+                        localGate->getNextGate()->getChannel();
         if (channel == nullptr) {
-            throw cRuntimeError("null pointer of channel for local gate %s", localGate->getFullName());
+            throw cRuntimeError("null pointer of channel for local gate %s",
+                    localGate->getFullName());
         }
-        ev << "channel: " << (void*) channel << " module: " << (void*) node->getModule() << endl;
-
+        ev << "channel: " << (void*) channel << " module: "
+                << (void*) node->getModule() << endl;
 
         if (node != srcNode) {
             // to skip source node and destination one
@@ -118,12 +151,12 @@ std::vector<Resource*>* Net::getResourcePath(const int srcAddress, const int dst
 
     ev << "results:" << endl;
     for (auto r : *path) // TODO
-        ev << (void*) r << " " << (void *) (r != nullptr ? r->getNedComponent() : nullptr) << endl;
+        ev << (void*) r << " "
+                << (void *) (r != nullptr ? r->getNedComponent() : nullptr)
+                << endl;
 
     return path;
 }
-
-
 
 std::vector<int>* Net::getGatePath(const int srcAddress, const int dstAddress) {
     auto srcServer = routing->getServerByAddress(srcAddress);
@@ -134,7 +167,8 @@ std::vector<int>* Net::getGatePath(const int srcAddress, const int dstAddress) {
     }
 
     if (dstServer == nullptr) {
-        throw cRuntimeError("no server for destination address: %d", dstAddress);
+        throw cRuntimeError("no server for destination address: %d",
+                dstAddress);
     }
 
     std::vector<int>* path = new std::vector<int>();
@@ -148,7 +182,8 @@ std::vector<int>* Net::getGatePath(const int srcAddress, const int dstAddress) {
     topo.calculateUnweightedSingleShortestPathsTo(dstNode);
 
     if (srcNode->getNumPaths() == 0) {
-        ev <<  "server:" << srcAddress << " and server:" << dstAddress << " not connected" << endl;
+        ev << "server:" << srcAddress << " and server:" << dstAddress
+                << " not connected" << endl;
         return path;
     }
 
@@ -173,13 +208,15 @@ std::vector<int>* Net::getGatePath(const int srcAddress, const int dstAddress) {
     for (auto g : *path) // TODO
         ev << g << endl;
 
-
     return path;
 }
 
+#if 0
 void Net::addFlow(const int sourceAddress, const int destAddress,
-                  const simtime_t startTime, const simtime_t endTime,
-                  const double desiredAllocation) {
+        const simtime_t startTime, const simtime_t endTime,
+        const double desiredAllocation) {
+
+    Enter_Method_Silent();
 
     // Input parameters for flow:
     // * source server - a node from which flow runs
@@ -210,7 +247,6 @@ void Net::addFlow(const int sourceAddress, const int destAddress,
         if (f->isReduced()) {
             f->updateEndTime();
 
-
             // update flows scheduling
             auto event = f->getEvent();
             f->sourceServer()->cancelEvent(event);
@@ -223,14 +259,15 @@ void Net::addFlow(const int sourceAddress, const int destAddress,
         r->getNedComponent()->par("capacity").setDoubleValue(r->getCapacity());
     }
 
-
     // create event for omnetpp for new flow
     flow->sourceServer()->schedule(flow->getEndTime(), flow->getEvent());
 
-    ev << simTime() << ": Flow added" <<  endl;
+    ev << simTime() << ": Flow added" << endl;
 }
 
 void Net::removeFlow(Flow* flow) {
+
+    Enter_Method_Silent();
 
     // since flow should be removed,
     // its allocation from all related resources should be freed
@@ -239,14 +276,12 @@ void Net::removeFlow(Flow* flow) {
         r->changeCapacity(allocation);
     }
 
-
     auto it = std::find(flows.begin(), flows.end(), flow);
     if (it == flows.end()) {
         throw cRuntimeError("flow to be deleted was not found");
     }
     flows.erase(it);
     delete flow;
-
 
     Solver::solve(flows, resources);
     Solver::printFlows(flows);
@@ -257,7 +292,6 @@ void Net::removeFlow(Flow* flow) {
         if (f->isIncreased()) {
             f->updateEndTime();
 
-
             // update flows scheduling
             auto event = f->getEvent();
             f->sourceServer()->cancelEvent(event);
@@ -266,4 +300,4 @@ void Net::removeFlow(Flow* flow) {
     }
     ev << simTime() << ": Flow deleted" << endl;
 }
-
+#endif

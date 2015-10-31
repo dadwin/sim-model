@@ -25,6 +25,8 @@ public:
 
     virtual void changeCapacity(const double delta) = 0;
 
+    virtual void setMaxCapacity() = 0;
+
     bool isBusy() const {
         return getMaxCapacity() == getCapacity();
     }
@@ -81,6 +83,10 @@ public:
         }
         capacity += delta;
     }
+
+    virtual void setMaxCapacity() {
+        capacity = maxCapacity;
+    }
 };
 
 class LinkResource : public Resource {
@@ -129,6 +135,9 @@ public:
         capacity += delta;
     }
 
+    virtual void setMaxCapacity() {
+        capacity = maxCapacity;
+    }
 };
 
 

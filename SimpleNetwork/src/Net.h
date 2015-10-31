@@ -8,6 +8,7 @@
 #ifndef NETWORK_H_
 #define NETWORK_H_
 
+#include <map>
 #include <mutex>
 #include <vector>
 #include <omnetpp.h>
@@ -20,6 +21,23 @@ class Flow;
 class Net : public cSimpleModule {
 
 public:
+
+    struct FlowParameters {
+        double demand;
+        simtime_t start;
+        simtime_t end;
+        int source;
+        int destination;
+
+        FlowParameters(double demand, simtime_t start, simtime_t end, int source, int destination) {
+            this->demand = demand;
+            this->start = start;
+            this->end = end;
+            this->source = source;
+            this->destination = destination;
+        }
+    };
+
     void initialize();
     void handleMessage(cMessage *msg);
 
@@ -33,10 +51,13 @@ public:
             const simtime_t startTime, const simtime_t endTime,
             const double desiredAllocation);
     void removeFlow(Flow* flow);
+    std::vector<Net::FlowParameters*> getFlowProfile(const int sourceAddress) const;
 
 protected:
     Routing* routing;
     std::mutex mutex;
+    std::multimap<int, FlowParameters*> profile;
+public:
     std::vector<Resource*> resources; // TODO it can be map <cComponent*, Resource*>
     std::vector<Flow*> flows;
 };

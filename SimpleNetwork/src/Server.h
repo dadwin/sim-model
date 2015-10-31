@@ -36,10 +36,15 @@ class Server : public cSimpleModule
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
     void handleSelfMessage(cMessage *msg);
+    void scheduledInitialize();
 
   public:
     void schedule(simtime_t t, cMessage* msg);
     int getAddress() const;
+    void addFlow(const int sourceAddress, const int destAddress,
+                      const simtime_t startTime, const simtime_t endTime,
+                      const double desiredAllocation);
+    void removeFlow(Flow* flow);
 
 };
 

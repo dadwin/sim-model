@@ -188,7 +188,7 @@ protected:
                 if (Nj[j] == 0)
                     continue;
 
-                double A = notUsedResources.at(j)->getCapacity() / (double) Nj[j];
+                double A = notUsedResources.at(j)->getMaxCapacity() / (double) Nj[j];
                 if (A <= Ak) {
                     Ak = A;
                     kArgMin = j;
@@ -265,6 +265,9 @@ protected:
 public:
     static void solve(const std::vector<Flow*>& flows,
             const std::vector<Resource*>& resources) {
+
+        for (auto r : resources)
+            r->setMaxCapacity();
         solveStage(solveStage(flows, resources, Thin), resources, Thick);
     }
 

@@ -21,7 +21,6 @@ void Routing::handleMessage(cMessage* msg) {
 }
 
 int Routing::assignAddress(Server* server) {
-    Enter_Method_Silent();
     mutex.lock();
 
     int address = ++lastAddress;
@@ -33,7 +32,6 @@ int Routing::assignAddress(Server* server) {
 
 Server* Routing::getServerByAddress(const int address) {
     // TODO what about input argument checking?
-    Enter_Method_Silent();
 
     mutex.lock();
 

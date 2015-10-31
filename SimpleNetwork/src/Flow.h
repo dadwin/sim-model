@@ -146,6 +146,9 @@ public:
         if (allocation > desiredAllocation) {
             throw cRuntimeError("allocation is greater than demand");
         }
+        if (allocation == 0) {
+            throw cRuntimeError("allocation is equal to zero");
+        }
         previousAllocation = currentAllocation;
         currentAllocation = allocation;
     }

@@ -130,7 +130,8 @@ $O/src/Server.o: src/Server.cc \
 	src/Net.h \
 	src/Resource.h \
 	src/Routing.h \
-	src/Server.h
+	src/Server.h \
+	src/Solver.h
 $O/src/Switch.o: src/Switch.cc \
 	src/Flow.h \
 	src/Net.h \
