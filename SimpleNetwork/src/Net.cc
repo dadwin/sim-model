@@ -13,44 +13,67 @@
 
 Define_Module(Net);
 
+template<typename T>
+T getValueFromXmlTag(const cXMLElement* xmlElement, const char* tagName) {
+    if (tagName == nullptr)
+        throw cRuntimeError("null tagName");
+
+    cXMLElement* tag = xmlElement->getFirstChildWithTag(tagName);
+
+    if (tag == nullptr)
+        throw cRuntimeError("XML read error: %s type is missing", tagName);
+
+    std::string value = tag->getNodeValue();
+    return stod(value);
+}
+
 void Net::initialize() {
     resources.clear();
     flows.clear();
 
     routing = check_and_cast<Routing*>(getModuleByPath("routing"));
+    flowProfile.clear();
 
 
-    //profile.insert(std::pair<int, FlowParameters*>(2, new FlowParameters(1000, 0, 10, 2, 11)));
-    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(1000, 1, 10, 1, 11)));
-    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 1, 10, 1, 11)));
-    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 2, 10, 1, 11)));
-    profile.insert(std::pair<int, FlowParameters*>(7, new FlowParameters(60, 5, 6, 7, 6)));
-    profile.insert(std::pair<int, FlowParameters*>(8, new FlowParameters(60, 5, 7, 8, 6)));
-    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 5, 10, 1, 11)));
+    //flowProfile.insert(std::pair<int, FlowParameters*>(2, new FlowParameters(1000, 0, 10, 2, 11)));
+    //flowProfile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(1000, 1, 10, 1, 11)));
+    //flowProfile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 1, 10, 1, 11)));
+    //flowProfile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 2, 10, 1, 11)));
+    //flowProfile.insert(std::pair<int, FlowParameters*>(7, new FlowParameters(60, 5, 6, 7, 6)));
+    //flowProfile.insert(std::pair<int, FlowParameters*>(8, new FlowParameters(60, 5, 7, 8, 6)));
+    //flowProfile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 5, 10, 1, 11)));
 
-
-    return; //TODO
 
     // reading flow profile
-    cXMLElement* root = getParentModule()->par("profile").xmlValue();
-    cXMLElementList tasks = root->getChildrenByTagName("flow");
-    for (auto it = tasks.begin(); it != tasks.end(); it++) {
-        cXMLElement* flow = *it;
-        cXMLElement* flowSourceElem = flow->getFirstChildWithTag("source");
+    cXMLElement* root = par("flowprofile").xmlValue();
+    cXMLElementList flows = root->getChildrenByTagName("flow");
+    for (auto it = flows.cbegin(); it != flows.cend(); it++) {
+        const cXMLElement* flow = *it;
 
-        if (flowSourceElem == nullptr) {
-            throw cRuntimeError("XML read error: source type is missing");
-        }
+        const double demand = getValueFromXmlTag<double>(flow, "demand");
+        const double start = getValueFromXmlTag<double>(flow, "startTime");
+        const double end = getValueFromXmlTag<double>(flow, "endTime");
+        const int source = getValueFromXmlTag<int>(flow, "source");
+        const int destination = getValueFromXmlTag<int>(flow, "destination");
 
-        std::string source = flowSourceElem->getNodeValue();
+        std::cout << demand << " " << start << " " << end << " " << source << " " << destination << endl;
+
+        auto fp = new FlowParameters(demand, start, end, source, destination);
+        addFlowParameters(fp);
     }
+}
 
+void Net::addFlowParameters(FlowParameters* fp) {
+    if (fp == nullptr)
+        throw cRuntimeError("null flowParameter");
+
+    flowProfile.insert(std::pair<int, FlowParameters*>(fp->source, fp));
 }
 
 std::vector<Net::FlowParameters*> Net::getFlowProfile(const int sourceAddress) const {
 
     std::vector<FlowParameters*> list;
-    for (auto it = profile.cbegin(); it != profile.cend(); ++it) {
+    for (auto it = flowProfile.cbegin(); it != flowProfile.cend(); ++it) {
         if ((*it).first == sourceAddress) {
             list.push_back((*it).second);
         }

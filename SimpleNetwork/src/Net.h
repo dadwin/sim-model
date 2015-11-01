@@ -56,7 +56,9 @@ public:
 protected:
     Routing* routing;
     std::mutex mutex;
-    std::multimap<int, FlowParameters*> profile;
+    std::multimap<int, FlowParameters*> flowProfile;
+
+    void addFlowParameters(FlowParameters* fp);
 public:
     std::vector<Resource*> resources; // TODO it can be map <cComponent*, Resource*>
     std::vector<Flow*> flows;
