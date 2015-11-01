@@ -62,6 +62,7 @@ void Server::scheduledInitialize() {
 
     // schedule flows
     for (auto flowParameters : flowList) {
+
         auto event = new cMessage("NewFlow", 0);
         auto par = new cMsgPar("flowParameters");
         par->setPointerValue(flowParameters);
@@ -110,6 +111,8 @@ void Server::handleSelfMessage(cMessage *msg)
 
     if (msg->isName("scheduledInitialize")) {
         scheduledInitialize();
+        delete msg;
+        return;
     }
 
     if (msg->isName("NewFlow")) {
@@ -145,12 +148,16 @@ void Server::addFlow(const int sourceAddress, const int destAddress,
 
     Solver::solve(net->flows, net->resources);
     Solver::printFlows(net->flows);
-    Solver::printResources(net->resources);
+    //Solver::printResources(net->resources);
 
     // find reduced flows and recalculate end time for them
+    // for new flow isReduced() always returns false,
+    // since its previous allocation is zero
+    simtime_t now = simTime();
+    flow->updateEndTime(now);
     for (auto f : net->flows) {
         if (f->isReduced()) {
-            f->updateEndTime();
+            f->updateEndTime(now);
 
 
             // update flows scheduling
@@ -170,18 +177,11 @@ void Server::addFlow(const int sourceAddress, const int destAddress,
     // create event for omnetpp for new flow
     flow->sourceServer()->scheduleAt(flow->getEndTime(), flow->getEvent());
 
-    ev << simTime() << ": Flow added" <<  endl;
+    std::cout << "Flow added. Time: " << simTime() << endl;
+    ev << simTime() << ": Flow added. Time: " << simTime() << endl;
 }
 
 void Server::removeFlow(Flow* flow) {
-
-    // since flow should be removed,
-    // its allocation from all related resources should be freed
-    double allocation = flow->getAllocation();
-    for (auto r : *flow->getPath()) {
-        r->changeCapacity(allocation);
-    }
-
 
     auto it = std::find(net->flows.begin(), net->flows.end(), flow);
     if (it == net->flows.end()) {
@@ -190,24 +190,40 @@ void Server::removeFlow(Flow* flow) {
     net->flows.erase(it);
     delete flow;
 
-
     Solver::solve(net->flows, net->resources);
     Solver::printFlows(net->flows);
-    Solver::printResources(net->resources);
+    //Solver::printResources(net->resources);
 
     // find increased flows and recalculate end time for them
+    simtime_t now = simTime();
     for (auto f : net->flows) {
+        if (f->getEvent()->isName("DataMessage")) {
+            // this type of flow is not rescheduled
+            // since flow of this type is 'almost' delivered
+            // by 'almost' I mean that all recalculations were done previously
+            // another way to do this - erase flow from net->flows when FlowMessages delivered
+            continue;
+        }
+
         if (f->isIncreased()) {
-            f->updateEndTime();
+            f->updateEndTime(now);
 
 
             // update flows scheduling
             auto event = f->getEvent();
+            event->setSchedulingPriority(0);
             f->sourceServer()->cancelEvent(event);
             f->sourceServer()->take(event);
             f->sourceServer()->scheduleAt(f->getEndTime(), event);
         }
     }
-    ev << simTime() << ": Flow deleted" << endl;
+
+    // TODO update capacity for switches and links
+    for (auto r : net->resources) {
+        r->getNedComponent()->par("capacity").setDoubleValue(r->getCapacity());
+    }
+
+    std::cout << "Flow deleted. Time: " << simTime() << endl;
+    ev << simTime() << ": Flow deleted. Time: " << simTime() << endl;
 }
 

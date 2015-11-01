@@ -20,12 +20,12 @@ void Net::initialize() {
     routing = check_and_cast<Routing*>(getModuleByPath("routing"));
 
 
-    profile.insert(std::pair<int, FlowParameters*>(2, new FlowParameters(1000, 0, 10, 2, 11)));
-    profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(1000, 0, 10, 1, 11)));
+    //profile.insert(std::pair<int, FlowParameters*>(2, new FlowParameters(1000, 0, 10, 2, 11)));
+    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(1000, 1, 10, 1, 11)));
     //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 1, 10, 1, 11)));
     //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 2, 10, 1, 11)));
-    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 3, 10, 1, 11)));
-    //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 4, 10, 1, 11)));
+    profile.insert(std::pair<int, FlowParameters*>(7, new FlowParameters(60, 5, 6, 7, 6)));
+    profile.insert(std::pair<int, FlowParameters*>(8, new FlowParameters(60, 5, 7, 8, 6)));
     //profile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 5, 10, 1, 11)));
 
 

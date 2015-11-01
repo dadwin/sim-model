@@ -21,10 +21,11 @@ protected:
     double desiredAllocation;
     double previousAllocation;
     double currentAllocation;
+    double desiredVolume;
+    double currentVolume;
 
     simtime_t startTime;
     simtime_t endTime;
-    //cSimpleModule* owner;
     Server* srcServer; // owner of flow
     //Server* dstServer;
     int srcAddress; // NOTE addresses can be parameters of Server,
@@ -38,7 +39,6 @@ public:
 
     Flow(Server* sourceServer, const double desiredAllocation, const simtime_t startTime, const simtime_t endTime, std::vector<Resource*>* path, std::vector<int>* gatePath) {
 
-        //this->id = id; // TODO is it needed?
         this->desiredAllocation = desiredAllocation;
         this->currentAllocation = 0.0;
         this->previousAllocation = 0.0;
@@ -47,6 +47,8 @@ public:
         this->path = path;
         this->gatePath = gatePath;
         this->srcServer = sourceServer;
+        desiredVolume = desiredAllocation*(endTime - startTime).dbl();
+        currentVolume = 0.0;
 
         // when event is delivered, module knows about flow via the Flow parameter
         event = new cMessage("FlowMessage", 0);
@@ -54,16 +56,6 @@ public:
         par->setPointerValue(this);
         event->addPar(par);
     }
-/*
-    Flow(long id, double demand, const long* path, const size_t path_size)
-        : demand(demand) {
-
-        allocation = 0.0;
-        this->path.assign(path, path + path_size);
-
-        event = new cMessage("FlowMessage", 0);
-    }
-*/
 
     ~Flow() {
         delete event;
@@ -85,23 +77,26 @@ public:
         return srcServer;
     }
 
-    int getSrcAddress() const {
-        return srcAddress;
-    }
+    void updateEndTime(const simtime_t now) {
+        if (currentVolume < 0 || currentVolume > desiredVolume)
+            throw cRuntimeError("invalid currentVolume for flow before updating");
 
-//    int getDstAddress() const {
-//        return dstAddress;
-//    }
+        if (startTime > now || now > endTime)
+            throw cRuntimeError("invalid times before for flow updating");
 
-    void updateEndTime() {
-        simtime_t newEndTime;
-        if (previousAllocation == 0) {
-            // this flow just added to network
-            newEndTime = startTime + (endTime - startTime)*desiredAllocation/currentAllocation;
-        } else {
-            newEndTime = startTime + (endTime - startTime)*previousAllocation/currentAllocation;
-        }
-        endTime = newEndTime;
+        // here we need to understand what amount of flow's data remains to transmit
+        const double lastPortion = previousAllocation*(now - startTime).dbl();
+        currentVolume += lastPortion;
+
+        const double restVolume = desiredVolume - currentVolume;
+        endTime = now + restVolume/currentAllocation;
+        startTime = now;
+
+        if (currentVolume < 0 || currentVolume > desiredVolume)
+            throw cRuntimeError("invalid currentVolume for flow after updating");
+
+        if (startTime > now || now > endTime)
+            throw cRuntimeError("invalid times after for flow updating");
     }
 
     int getNextGateId() const {
@@ -113,21 +108,9 @@ public:
         return nextGateId;
     }
 
-
     bool operator==(const Flow& f) {
         return this == &f;
-//        if (id != f.id)
-//            return false;
-
         // TODO what about other members?
-        // It seems that id is enough for comparison
-        return true;
-    }
-
-    long getId() const {
-        //return id;
-        throw std::invalid_argument("bad method invocation");
-        return 0;
     }
 
     double getDemand() const {
@@ -143,6 +126,7 @@ public:
     }
 
     void setAllocation(double allocation) {
+        // allocation value to be set always should be between 0 and desiredAllocation
         if (allocation > desiredAllocation) {
             throw cRuntimeError("allocation is greater than demand");
         }
