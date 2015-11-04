@@ -225,32 +225,9 @@ public:
             r->setMaxCapacity();
             r->resetCounts(); // TODO only allotted
         }
+        // TODO what about initialization?
 
         std::vector<Flow*> flows(inputFlows);
-
-        std::sort(resources.begin(), resources.end(), Resource::comp2); // TODO or comp1?
-
-        for (auto r : resources) {
-
-            double totalDemand = 0.0;
-            for (Flow* f : r->flows()) {
-                totalDemand += f->getDemand();
-            }
-
-            if (totalDemand <= r->getMaxCapacity()) {
-                for (Flow* f : r->flows()) {
-                    f->setAllocation(f->getDemand());
-                    for (Resource* r : *f->getPath()) {
-                        r->countAllottedFlow();
-                        r->decreaseCapacity(f->getDemand());
-                    }
-                }
-            } else {
-
-            }
-
-
-        }
 
         size_t currentSize, previousSize;
         do {
@@ -314,33 +291,23 @@ public:
             }
         }
 
-
-        for (auto it = flows.begin(); it != flows.end(); /* nothing */) {
-
-            Flow* f = *it;
-
-            auto path = f->getPath();
-            const Resource* minR = std::min_element(path->begin(), path->end(),
-                    Resource::comp2);
+        if (flows.size() != 0)
+            throw std::invalid_argument("not all flows are allotted");
 
 
-    }
-
-    solveStage(solveStage(flows, resources, Thin), resources, Thick);
 }
 
 static void printFlows(const std::vector<Flow*>& flows) {
     std::cout << "Flows:\n";
     for (const Flow* f : flows)
-        std::cout << " d:" << f->getDemand() << " a:" << f->getAllocation()
-                << "\n";
+        std::cout << " d:" << f->getDemand() << " a:" << f->getAllocation() << "\n";
 }
 
 static void printResources(const std::vector<Resource*>& resources) {
     std::cout << "Resources:\n";
     for (const Resource* r : resources)
-        std::cout << " mc:" << r->getMaxCapacity() << " c:" << r->getCapacity()
-                << "\n";
+        std::cout << " mc:" << r->getMaxCapacity() << " c:" << r->getCapacity() << "\n";
 }
+};
 
 #endif /* SOLVER_H_ */
