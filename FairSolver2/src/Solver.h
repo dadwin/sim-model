@@ -27,7 +27,7 @@ public:
     static bool comp1(const Resource* first, const Resource* second) {
         double cn1 = first->maxCapacity / (double) first->flows;
         double cn2 = second->maxCapacity / (double) second->flows;
-        return cn1 - cn2;
+        return cn1 < cn2;
     }
 
     static bool comp2(const Resource* first, const Resource* second) {
@@ -35,7 +35,7 @@ public:
         double n2 = second->flows - second->flows_allotted;
         double cn1 = first->capacity / n1;
         double cn2 = second->capacity / n2;
-        return cn1 - cn2;
+        return cn1 < cn2;
     }
 
     double getFairMaxCapacity() const {
@@ -72,11 +72,11 @@ public:
         if (delta < 0)
             throw std::invalid_argument("delta is negative");
 
-        if (capacity + delta < 0) {
+        if (capacity - delta < 0) {
             throw std::invalid_argument("decreasing capacity down to negative value");
         }
-        capacity += delta;
-        flows_allotted++; // TODO is it OK?
+        capacity -= delta;
+        //flows_allotted++; // TODO is it OK?
         checkInvariant();
     }
 
@@ -94,25 +94,25 @@ public:
         checkInvariant();
     }
 
-    void addFlow(Flow* f) {
-        fs.push_back(f);
-    }
-
-    void removeFlow(Flow* f) {
-        auto fPos = std::remove(notAllottedFlows.begin(), notAllottedFlows.end(), f);
-        fs.erase(fPos);
-    }
-
-    const std::vector<Flow*>& flows() const {
-        return fs;
-    }
+//    void addFlow(Flow* f) {
+//        fs.push_back(f);
+//    }
+//
+//    void removeFlow(Flow* f) {
+//        auto fPos = std::remove(notAllottedFlows.begin(), notAllottedFlows.end(), f);
+//        fs.erase(fPos);
+//    }
+//
+//    const std::vector<Flow*>& flows() const {
+//        return fs;
+//    }
 
 protected:
     double maxCapacity;
     double capacity;
     int flows;
     int flows_allotted;
-    std::vector<Flow*> fs;
+//    std::vector<Flow*> fs;
 
     void checkInvariant() const {
         if (flows < flows_allotted)
@@ -141,6 +141,8 @@ public:
 
     Flow(const double desiredAllocation, std::vector<Resource*>* path) {
         this->desiredAllocation = desiredAllocation;
+        this->currentAllocation = 0;
+        this->previousAllocation = 0;
         this->path = path;
     }
 
@@ -213,19 +215,29 @@ protected:
 
 class Solver {
 protected:
-    enum StageType {
-        Thin, Thick
-    };
+        std::vector<Flow*> inputFlows;
+        std::vector<Resource*> inputResources;
 
 public:
+
     static void solve(const std::vector<Flow*>& inputFlows,
             const std::vector<Resource*>& resources) {
 
+        // initialization
+        // TODO it's full initialization, probably it should be smarter :)
         for (auto r : resources) {
             r->setMaxCapacity();
-            r->resetCounts(); // TODO only allotted
+            r->resetCounts();
         }
-        // TODO what about initialization?
+
+        for (Flow* f : inputFlows) {
+            auto path = f->getPath();
+
+            for (Resource* r : *path) {
+                r->countFlow();
+            }
+        }
+        // initialization end
 
         std::vector<Flow*> flows(inputFlows);
 
@@ -238,8 +250,7 @@ public:
                 Flow* f = *it;
 
                 auto path = f->getPath();
-                const Resource* minR = std::min_element(path->begin(), path->end(),
-                        Resource::comp2);
+                const Resource* minR = *std::min_element(path->begin(), path->end(), Resource::comp2);
 
                 if (f->getDemand() <= minR->getFairCapacity()) {
                     f->setAllocation(f->getDemand());
@@ -272,8 +283,7 @@ public:
             Flow* f = *it;
 
             auto path = f->getPath();
-            const Resource* minR = std::min_element(path->begin(), path->end(),
-                    Resource::comp2);
+            const Resource* minR = *std::min_element(path->begin(), path->end(), Resource::comp2);
 
             const double fairShare = minR->getFairCapacity();
             if (f->getDemand() > fairShare) {
@@ -293,7 +303,6 @@ public:
 
         if (flows.size() != 0)
             throw std::invalid_argument("not all flows are allotted");
-
 
 }
 
