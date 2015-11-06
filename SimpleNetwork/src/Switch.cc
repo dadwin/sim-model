@@ -25,7 +25,7 @@ void Switch::initialize()
     net = check_and_cast<Net*>(getModuleByPath("net"));
 
     const double maxCapacity = par("maxCapacity");
-    Resource* resource = new SwitchResource(this, 0, maxCapacity); // TODO what about id? can it be 'this' pointer?
+    Resource* resource = new SwitchResource(this, maxCapacity); // TODO what about id? can it be 'this' pointer?
     net->registerResource(resource);
 
     // identifying channels as resources
@@ -60,7 +60,7 @@ void Switch::initialize()
             }
         }
         const double maxCapacity = channel->par("maxCapacity");
-        Resource* resource = new LinkResource(channel, 0, maxCapacity); // TODO what about id? can it be 'this' pointer?
+        Resource* resource = new LinkResource(channel, maxCapacity); // TODO what about id? can it be 'this' pointer?
         net->registerResource(resource);
     }
 }

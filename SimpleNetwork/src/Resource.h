@@ -9,58 +9,54 @@ class cComponent;
 class Resource {
 public:
 
-    //Resource(long id, double maxCapacity) {
-    //}
-
+//    Resource(cComponent* nedComponent, double maxCapacity) {
+//        this->capacity = maxCapacity;
+//        this->maxCapacity = maxCapacity;
+//        this->flows = 0;
+//        this->flows_allotted = 0;
+//        this->nedComponent = nedComponent;
+//    }
+    
     virtual ~Resource() {
     }
-
-    virtual long getId() const = 0;
-
-    virtual cComponent* getNedComponent() const = 0;
-
-    virtual double getMaxCapacity() const = 0;
-
-    virtual double getCapacity() const = 0;
-
-    virtual void changeCapacity(const double delta) = 0;
-
-    virtual void setMaxCapacity() = 0;
-
-    bool isBusy() const {
-        return getMaxCapacity() == getCapacity();
-    }
-
-    bool isFree() const {
-        return getCapacity() == 0.0;
-    }
-
-};
-
-
-class SwitchResource : public Resource {
-
-protected:
-    long id;
-    cComponent* nedComponent;
-    double maxCapacity;
-    double capacity;
-
-public:
-
-    SwitchResource(cComponent* nedComponent, const long id, const double maxCapacity) {
-        this->nedComponent = nedComponent;
-        this->id = id;
-        this->maxCapacity = maxCapacity;
-        this->capacity = maxCapacity;
-    }
-
-    virtual long getId() const {
-        return id;
-    }
-
+    
     virtual cComponent* getNedComponent() const {
         return nedComponent;
+    }
+
+    static bool comp1(const Resource* first, const Resource* second) {
+        double cn1 = first->maxCapacity / (double) first->flows;
+        double cn2 = second->maxCapacity / (double) second->flows;
+        return cn1 < cn2;
+    }
+
+    static bool comp2(const Resource* first, const Resource* second) {
+        double n1 = first->flows - first->flows_allotted;
+        double n2 = second->flows - second->flows_allotted;
+        double cn1 = first->capacity / n1;
+        double cn2 = second->capacity / n2;
+        return cn1 < cn2;
+    }
+
+    virtual double getFairMaxCapacity() const {
+        return maxCapacity / (double) flows;
+    }
+
+    virtual double getFairCapacity() const {
+        const double n = flows - flows_allotted;
+        return capacity / n;
+    }
+
+    virtual void countFlow() {
+        checkInvariant();
+        flows++;
+        checkInvariant();
+    }
+
+    virtual void countAllottedFlow() {
+        checkInvariant();
+        flows_allotted++;
+        checkInvariant();
     }
 
     virtual double getMaxCapacity() const {
@@ -71,72 +67,84 @@ public:
         return capacity;
     }
 
-    virtual void changeCapacity(const double delta) {
-        if (delta <= 0.0) {
-            if (capacity + delta < 0) {
-                throw std::invalid_argument("decreasing capacity down to negative value");
-            }
-        } else {
-            if (capacity + delta > maxCapacity ) {
-                throw std::invalid_argument("increasing capacity up to maxCapacity value");
-            }
+    virtual void decreaseCapacity(const double delta) {
+        checkInvariant();
+        if (delta < 0)
+            throw std::invalid_argument("delta is negative");
+
+        if (capacity - delta < 0) {
+            throw std::invalid_argument("decreasing capacity down to negative value");
         }
-        capacity += delta;
+        capacity -= delta;
+        //flows_allotted++; // TODO is it OK?
+        checkInvariant();
     }
 
     virtual void setMaxCapacity() {
+        checkInvariant();
         capacity = maxCapacity;
+
+        flows_allotted = 0; // TODO is it OK?
+        checkInvariant();
+    }
+
+    virtual void resetCounts() {
+        checkInvariant();
+        flows = 0;
+        checkInvariant();
+    }
+
+protected:
+    double maxCapacity;
+    double capacity;
+    int flows;
+    int flows_allotted;
+    cComponent* nedComponent;
+    
+
+    void checkInvariant() const {
+        if (flows < flows_allotted)
+            throw std::invalid_argument("flows is less than flows_allotted");
+
+        if (maxCapacity < capacity)
+            throw std::invalid_argument("maxCapacity is less than capacity");
+
+        if (flows < 0)
+            throw std::invalid_argument("flows is negative");
+
+        if (flows_allotted < 0)
+            throw std::invalid_argument("flows_allotted is negative");
+
+        if (capacity < 0)
+            throw std::invalid_argument("capacity is negative");
+
+        if (maxCapacity < 0)
+            throw std::invalid_argument("maxCapacity is negative");
+
+    }
+};
+
+
+
+class SwitchResource : public Resource {
+public:
+    SwitchResource(cComponent* nedComponent, double maxCapacity) {
+        this->capacity = maxCapacity;
+        this->maxCapacity = maxCapacity;
+        this->flows = 0;
+        this->flows_allotted = 0;
+        this->nedComponent = nedComponent;
     }
 };
 
 class LinkResource : public Resource {
-
-protected:
-    long id;
-    cComponent* nedComponent;
-    double maxCapacity;
-    double capacity;
-
 public:
-
-    LinkResource(cComponent* nedComponent, const long id, const double maxCapacity) {
-        this->nedComponent = nedComponent;
-        this->id = id;
-        this->maxCapacity = maxCapacity;
+    LinkResource(cComponent* nedComponent, double maxCapacity) {
         this->capacity = maxCapacity;
-    }
-
-    virtual long getId() const {
-        return id;
-    }
-
-    virtual cComponent* getNedComponent() const {
-        return nedComponent;
-    }
-
-    virtual double getMaxCapacity() const {
-        return maxCapacity;
-    }
-
-    virtual double getCapacity() const {
-        return capacity;
-    }
-
-    virtual void changeCapacity(const double delta) {
-        if (delta <= 0.0) {
-            if (capacity + delta < 0) {
-                throw std::invalid_argument("decreasing capacity down to negative value");
-            }
-        } else {
-            if (capacity + delta > maxCapacity ) {
-                throw std::invalid_argument("increasing capacity up to maxCapacity value");
-            }
-        }
-        capacity += delta;
-    }
-
-    virtual void setMaxCapacity() {
-        capacity = maxCapacity;
+        this->maxCapacity = maxCapacity;
+        this->flows = 0;
+        this->flows_allotted = 0;
+        this->nedComponent = nedComponent;
     }
 };
 

@@ -48,7 +48,7 @@ void Server::initialize()
             continue;
 
         const double maxCapacity = channel->par("maxCapacity");
-        Resource* resource = new LinkResource(channel, 0, maxCapacity); // TODO what about id? can it be 'this' pointer?
+        Resource* resource = new LinkResource(channel, maxCapacity); // TODO what about id? can it be 'this' pointer?
         net->registerResource(resource);
     }
 

@@ -34,6 +34,26 @@ protected:
     cMessage* event; // NOTE don't delete it in handleMessage()
     std::vector<Resource*>* path;
     std::vector<int>* gatePath;
+    
+    void checkInvariant() const {
+        if (desiredAllocation < currentAllocation)
+            throw std::invalid_argument(
+                    "desiredAllocation is less then currentAllocation");
+
+        if (desiredAllocation < previousAllocation)
+            throw std::invalid_argument(
+                    "desiredAllocation is less then previousAllocation");
+
+        if (desiredAllocation < 0)
+            throw std::invalid_argument("desiredAllocation is negative");
+
+        if (currentAllocation < 0)
+            throw std::invalid_argument("currentAllocation is negative");
+
+        if (previousAllocation < 0)
+            throw std::invalid_argument("previousAllocation is negative");
+
+    }
 
 public:
 
@@ -126,6 +146,7 @@ public:
     }
 
     void setAllocation(double allocation) {
+        checkInvariant();
         // allocation value to be set always should be between 0 and desiredAllocation
         if (allocation > desiredAllocation) {
             throw cRuntimeError("allocation is greater than demand");
@@ -135,29 +156,17 @@ public:
         }
         previousAllocation = currentAllocation;
         currentAllocation = allocation;
-    }
-
-    bool runThroughResource(const Resource* resource) const {
-        bool running = false;
-
-        if (resource == nullptr)
-            return running;
-
-        for (auto r : *path) {
-            if (r == resource) {
-                running = true;
-                break;
-            }
-        }
-        return running;
+        checkInvariant();
     }
 
     bool isReduced() const {
+        checkInvariant();
         const double diff = previousAllocation - currentAllocation;
         return diff > 0;
     }
 
     bool isIncreased() const {
+        checkInvariant();
         const double diff = previousAllocation - currentAllocation;
         return diff < 0;
     }
