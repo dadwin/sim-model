@@ -18,7 +18,7 @@ size_t FlowSize = 100;
 GTEST_API_ int main(int argc, char **argv) {
   printf("Running main() from gtest_main.cc\n");
 
-  if (argc == 3) {
+  if (argc > 3) {
       ResourceSize = std::stol(argv[1]);
       FlowSize = std::stol(argv[2]);
   }
