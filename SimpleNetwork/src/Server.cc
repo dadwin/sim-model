@@ -74,7 +74,6 @@ void Server::scheduledInitialize() {
 
 void Server::handleMessage(cMessage *msg)
 {
-    std::cout << getFullPath() << endl;
     if (msg->isSelfMessage()) {
         handleSelfMessage(msg);
         return;
@@ -85,8 +84,6 @@ void Server::handleMessage(cMessage *msg)
     }
 
     if (msg->isName("DataMessage")) {
-        // message arrived!
-        ev << "message arrived!" << endl;
 
         Flow* flow = (Flow*) msg->par("flow").pointerValue();
         removeFlow(flow);
@@ -116,7 +113,6 @@ void Server::handleSelfMessage(cMessage *msg)
     }
 
     if (msg->isName("NewFlow")) {
-        std::cout << msg->getId() << endl;
         auto fp= (Net::FlowParameters*) msg->par("flowParameters").pointerValue();
         addFlow(fp->source, fp->destination, fp->start, fp->end, fp->demand);
     }

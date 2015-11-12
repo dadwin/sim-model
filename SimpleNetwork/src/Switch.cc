@@ -67,7 +67,6 @@ void Switch::initialize()
 
 void Switch::handleMessage(cMessage *msg)
 {
-    std::cout << getFullPath() << endl;
     if (msg->isSelfMessage()) {
         handleSelfMessage(msg);
         return;

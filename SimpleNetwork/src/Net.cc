@@ -34,16 +34,6 @@ void Net::initialize() {
     routing = check_and_cast<Routing*>(getModuleByPath("routing"));
     flowProfile.clear();
 
-
-    //flowProfile.insert(std::pair<int, FlowParameters*>(2, new FlowParameters(1000, 0, 10, 2, 11)));
-    //flowProfile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(1000, 1, 10, 1, 11)));
-    //flowProfile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 1, 10, 1, 11)));
-    //flowProfile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 2, 10, 1, 11)));
-    //flowProfile.insert(std::pair<int, FlowParameters*>(7, new FlowParameters(60, 5, 6, 7, 6)));
-    //flowProfile.insert(std::pair<int, FlowParameters*>(8, new FlowParameters(60, 5, 7, 8, 6)));
-    //flowProfile.insert(std::pair<int, FlowParameters*>(1, new FlowParameters(10, 5, 10, 1, 11)));
-
-
     // reading flow profile
     cXMLElement* root = par("flowprofile").xmlValue();
     cXMLElementList flows = root->getChildrenByTagName("flow");
@@ -55,8 +45,6 @@ void Net::initialize() {
         const double end = getValueFromXmlTag<double>(flow, "endTime");
         const int source = getValueFromXmlTag<int>(flow, "source");
         const int destination = getValueFromXmlTag<int>(flow, "destination");
-
-        std::cout << demand << " " << start << " " << end << " " << source << " " << destination << endl;
 
         auto fp = new FlowParameters(demand, start, end, source, destination);
         addFlowParameters(fp);
@@ -126,7 +114,9 @@ std::vector<Resource*>* Net::getResourcePath(const int srcAddress,
 
     cTopology topo;
     topo.extractByProperty("node");
+#ifdef DEBUG
     ev << topo.getNumNodes() << " topology size\n";
+#endif
 
     cTopology::Node* dstNode = topo.getNodeFor(dstServer);
     cTopology::Node* srcNode = topo.getNodeFor(srcServer);
@@ -139,13 +129,18 @@ std::vector<Resource*>* Net::getResourcePath(const int srcAddress,
     }
 
     cTopology::Node *node = srcNode;
+#ifdef DEBUG
     ev << "path from node " << node->getModule()->getFullPath() << endl;
     ev << "path   to node " << dstNode->getModule()->getFullPath() << endl;
+#endif
+
     while (node != topo.getTargetNode()) {
         if (node->getNumPaths() < 1) {
             throw cRuntimeError("no path to destination server:%d", dstAddress);
         }
+#ifdef DEBUG
         ev << "We are in " << node->getModule()->getFullPath() << endl;
+#endif
         // TODO we can verify that hops == 5 : node->getDistanceToTarget() == 5
 
         cTopology::LinkOut *link = node->getPath(0);
@@ -158,8 +153,10 @@ std::vector<Resource*>* Net::getResourcePath(const int srcAddress,
             throw cRuntimeError("null pointer of channel for local gate %s",
                     localGate->getFullName());
         }
+#ifdef DEBUG
         ev << "channel: " << (void*) channel << " module: "
                 << (void*) node->getModule() << endl;
+#endif
 
         if (node != srcNode) {
             // to skip source node and destination one
@@ -171,13 +168,13 @@ std::vector<Resource*>* Net::getResourcePath(const int srcAddress,
 
         node = link->getRemoteNode();
     }
-
+#ifdef DEBUG
     ev << "results:" << endl;
-    for (auto r : *path) // TODO
+    for (auto r : *path)
         ev << (void*) r << " "
                 << (void *) (r != nullptr ? r->getNedComponent() : nullptr)
                 << endl;
-
+#endif
     return path;
 }
 
@@ -198,7 +195,9 @@ std::vector<int>* Net::getGatePath(const int srcAddress, const int dstAddress) {
 
     cTopology topo;
     topo.extractByProperty("node");
+#ifdef DEBUG
     ev << topo.getNumNodes() << " topology size\n";
+#endif
 
     cTopology::Node* dstNode = topo.getNodeFor(dstServer);
     cTopology::Node* srcNode = topo.getNodeFor(srcServer);
@@ -211,13 +210,18 @@ std::vector<int>* Net::getGatePath(const int srcAddress, const int dstAddress) {
     }
 
     cTopology::Node *node = srcNode;
+#ifdef DEBUG
     ev << "path from node " << node->getModule()->getFullPath() << endl;
     ev << "path   to node " << dstNode->getModule()->getFullPath() << endl;
+#endif
+
     while (node != topo.getTargetNode()) {
         if (node->getNumPaths() < 1) {
             throw cRuntimeError("no path to destination server:%d", dstAddress);
         }
+#ifdef DEBUG
         ev << "We are in " << node->getModule()->getFullPath() << endl;
+#endif
         // TODO we can verify that hops == 5 : node->getDistanceToTarget() == 5
 
         cTopology::LinkOut *link = node->getPath(0);
@@ -226,10 +230,11 @@ std::vector<int>* Net::getGatePath(const int srcAddress, const int dstAddress) {
         node = link->getRemoteNode();
     }
 
+#ifdef DEBUG
     ev << "results:" << endl;
-//    std::reverse(gatesIDs->begin(), gatesIDs->end());
-    for (auto g : *path) // TODO
+    for (auto g : *path)
         ev << g << endl;
+#endif
 
     return path;
 }
