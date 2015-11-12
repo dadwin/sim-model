@@ -103,6 +103,7 @@ void Server::handleSelfMessage(cMessage *msg)
 
         const int gateId = flow->getNextGateId();
         msg->setName("DataMessage");
+        msg->setSchedulingPriority(-1);
         send(msg, gateId);
     }
 
