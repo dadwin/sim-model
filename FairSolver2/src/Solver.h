@@ -25,17 +25,15 @@ public:
     }
 
     static bool comp1(const Resource* first, const Resource* second) {
-        double cn1 = first->maxCapacity / (double) first->flows;
-        double cn2 = second->maxCapacity / (double) second->flows;
-        return cn1 < cn2;
+        const double mc1 = first->getFairMaxCapacity();
+        const double mc2 = second->getFairMaxCapacity();
+        return mc1 < mc2;
     }
 
     static bool comp2(const Resource* first, const Resource* second) {
-        double n1 = first->flows - first->flows_allotted;
-        double n2 = second->flows - second->flows_allotted;
-        double cn1 = first->capacity / n1;
-        double cn2 = second->capacity / n2;
-        return cn1 < cn2;
+        const double fc1 = first->getFairCapacity();
+        const double fc2 = second->getFairCapacity();
+        return fc1 < fc2;
     }
 
     double getFairMaxCapacity() const {
@@ -146,6 +144,29 @@ public:
         this->path = path;
     }
 
+    static bool compByFairShare(const Flow* first, const Flow* second) {
+        const auto p1 = first->getPath();
+        const Resource* minR1 = *std::min_element(p1->begin(), p1->end(), Resource::comp2);
+        const double fs1 = minR1->getFairCapacity();
+
+        const auto p2 = second->getPath();
+        const Resource* minR2 = *std::min_element(p2->begin(), p2->end(), Resource::comp2);
+        const double fs2 = minR2->getFairCapacity();
+        return fs1 < fs2;
+    }
+
+    static bool compByFairShareDemand(const Flow* first, const Flow* second) {
+        const auto p1 = first->getPath();
+        const Resource* minR1 = *std::min_element(p1->begin(), p1->end(), Resource::comp2);
+        const double fsd1 = minR1->getFairCapacity()/first->getDemand();
+
+        const auto p2 = second->getPath();
+        const Resource* minR2 = *std::min_element(p2->begin(), p2->end(), Resource::comp2);
+        const double fsd2 = minR2->getFairCapacity()/second->getDemand();
+        // we want flows which are thin (share/demand >=1 or share >= demand) to be first
+        return fsd1 > fsd2;
+    }
+
     double getDemand() const {
         return desiredAllocation;
     }
@@ -218,6 +239,39 @@ protected:
         std::vector<Flow*> inputFlows;
         std::vector<Resource*> inputResources;
 
+
+    static void allocateThinFlows(std::vector<Flow*>& flows,
+            const std::vector<Resource*>& resources) {
+        // we need flows to be ordered in terms of minimal fair share and demand
+        // so we want allocated thin flows (fair share >= demand) in one pass
+        // that why here we use compByFairShareDemand
+        std::sort(flows.begin(), flows.end(), Flow::compByFairShareDemand);
+
+        for (auto it = flows.begin(); it != flows.end(); /* nothing */) {
+
+            Flow* f = *it;
+
+            auto path = f->getPath();
+            const Resource* minR = *std::min_element(path->begin(), path->end(), Resource::comp2);
+
+            if (f->getDemand() <= minR->getFairCapacity()) {
+                f->setAllocation(f->getDemand());
+
+                for (auto r : *path) {
+                    r->countAllottedFlow();
+                    r->decreaseCapacity(f->getDemand());
+                }
+
+                it = flows.erase(it);
+            } else {
+                ++it;
+                // NOTE hint for the future:
+                // here should be --it; and when we come to this else branch, we can do break
+                // since we sorted flows and no thin flows any more
+            }
+        }
+    }
+
 public:
 
     static void solve(const std::vector<Flow*>& inputFlows,
@@ -241,9 +295,15 @@ public:
 
         std::vector<Flow*> flows(inputFlows);
 
+        allocateThinFlows(flows, resources);
+#if 0
         size_t currentSize, previousSize;
         do {
             previousSize = flows.size();
+            // we need flows to be ordered in terms of minimal fair share and demand
+            // so we want allocated thin flows (fair share >= demand) in one pass
+            // that why here we use compByFairShareDemand
+            std::sort(flows.begin(), flows.end(), Flow::compByFairShareDemand);
 
             for (auto it = flows.begin(); it != flows.end(); /* nothing */) {
 
@@ -269,15 +329,20 @@ public:
             currentSize = flows.size();
             // stop after for-loop can't make a flow alloted
             // if all flows become allotted, then both currentSize and previousSize are equal to zero and it's OK.
+#if 0
         } while (previousSize != currentSize);
-
+#else
+        } while (false);
+#endif
+#endif
         if (flows.size() == 0) {
             // OK, all flows are allocated, exit
             return;
         }
 
-        // now we have flows all of that are with demand being greater than fair sharing.
+        // now we have flows all of that are with demand being greater than fair sharing (thick flows).
         // for them we allocate fair share
+        std::sort(flows.begin(), flows.end(), Flow::compByFairShare);
         for (auto it = flows.begin(); it != flows.end(); /* nothing */) {
 
             Flow* f = *it;
@@ -296,8 +361,19 @@ public:
 
                 it = flows.erase(it);
             } else {
+#if 0
+                f->setAllocation(f->getDemand());
+
+                for (auto r : *path) {
+                    r->countAllottedFlow();
+                    r->decreaseCapacity(f->getDemand());
+                }
+
+                it = flows.erase(it);
+#else
                 throw std::invalid_argument("impossible!");
                 ++it;
+#endif
             }
         }
 
