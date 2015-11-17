@@ -40,6 +40,7 @@ TEST(SimpleTest, test1) {
 // TODO test failed:
 // this test sets resource capacity to zero,
 // but we have requirement that states allocation should be positive
+#if ZERO_ALLOCATION_ALLOWED
 TEST(SimpleTest, test2) {
     std::vector<Flow*> flows;
     std::vector<Resource*> resources;
@@ -57,6 +58,7 @@ TEST(SimpleTest, test2) {
     EXPECT_DOUBLE_EQ(0.0, flows.at(0)->getAllocation());
     EXPECT_DOUBLE_EQ(0.0, resources.at(0)->getCapacity());
 }
+#endif
 
 TEST(SimpleTest, test3) {
     std::vector<Flow*> flows;
@@ -337,6 +339,325 @@ TEST(TwoResourcesTest, test5) {
     EXPECT_NEAR(1.0, resources.at(1)->getCapacity(), ep); // EXPECT_DOUBLE_EQ(1.0, resources.at(1)->getCapacity());
 }
 
+// Below is very sweet test cases:
+// they are different by order of flows.
+// Ideally no dependency on order of flows should be, but at some moment there was.
+// In order to recognize it I wrote these two tests
+TEST(FiveResourcesTest, test1) {
+    std::vector<Flow*> flows;
+    std::vector<Resource*> resources;
+
+    resources.push_back(new Resource(100.0)); //0
+    resources.push_back(new Resource(100.0)); //1
+    resources.push_back(new Resource(100.0)); //2
+    resources.push_back(new Resource(110.0)); //3
+    resources.push_back(new Resource(4.0));   //4
+
+    long p0[] = { 0, 1, 3 };
+    flows.push_back(new Flow(100.0, getPath(resources, p0, SIZE(p0))));
+    long p1[] = { 2, 3, 4 };
+    flows.push_back(new Flow(100.0, getPath(resources, p1, SIZE(p1))));
+
+    Solver::solve(flows, resources);
+
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    EXPECT_NEAR(100.0, flows.at(0)->getAllocation(), ep); // EXPECT_DOUBLE_EQ(9.0, flows.at(0)->getAllocation());
+    EXPECT_NEAR(4.0, flows.at(1)->getAllocation(), ep);
+    EXPECT_NEAR(0.0, resources.at(0)->getCapacity(), ep); // EXPECT_DOUBLE_EQ(0.0, resources.at(0)->getCapacity());
+    EXPECT_NEAR(0.0, resources.at(1)->getCapacity(), ep); // EXPECT_DOUBLE_EQ(10.0, resources.at(1)->getCapacity());
+    EXPECT_NEAR(6.0, resources.at(3)->getCapacity(), ep);
+    EXPECT_NEAR(96.0, resources.at(2)->getCapacity(), ep);
+    EXPECT_NEAR(0.0, resources.at(4)->getCapacity(), ep);
+}
+
+TEST(FiveResourcesTest, test2) {
+    std::vector<Flow*> flows;
+    std::vector<Resource*> resources;
+
+    resources.push_back(new Resource(100.0)); //0
+    resources.push_back(new Resource(100.0)); //1
+    resources.push_back(new Resource(100.0)); //2
+    resources.push_back(new Resource(110.0)); //3
+    resources.push_back(new Resource(4.0));   //4
+
+    long p1[] = { 2, 3, 4 };
+    flows.push_back(new Flow(100.0, getPath(resources, p1, SIZE(p1))));
+    long p0[] = { 0, 1, 3 };
+    flows.push_back(new Flow(100.0, getPath(resources, p0, SIZE(p0))));
+
+    Solver::solve(flows, resources);
+
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    EXPECT_NEAR(100.0, flows.at(1)->getAllocation(), ep); // EXPECT_DOUBLE_EQ(9.0, flows.at(0)->getAllocation());
+    EXPECT_NEAR(4.0, flows.at(0)->getAllocation(), ep);
+    EXPECT_NEAR(0.0, resources.at(0)->getCapacity(), ep); // EXPECT_DOUBLE_EQ(0.0, resources.at(0)->getCapacity());
+    EXPECT_NEAR(0.0, resources.at(1)->getCapacity(), ep); // EXPECT_DOUBLE_EQ(10.0, resources.at(1)->getCapacity());
+    EXPECT_NEAR(6.0, resources.at(3)->getCapacity(), ep);
+    EXPECT_NEAR(96.0, resources.at(2)->getCapacity(), ep);
+    EXPECT_NEAR(0.0, resources.at(4)->getCapacity(), ep);
+}
+
+TEST(FiveResourcesTest, test3) {
+    std::vector<Flow*> flows;
+    std::vector<Resource*> resources;
+
+    resources.push_back(new Resource(100.0)); //0
+    resources.push_back(new Resource(100.0)); //1
+    resources.push_back(new Resource(100.0)); //2
+    resources.push_back(new Resource(110.0)); //3
+    resources.push_back(new Resource(8.0));   //4
+
+    long p0[] = { 0, 1, 3 };
+    long p1[] = { 2, 3, 4 };
+    long p2[] = { 4 };
+
+    flows.push_back(new Flow(100.0, getPath(resources, p0, SIZE(p0))));
+    flows.push_back(new Flow(100.0, getPath(resources, p1, SIZE(p1))));
+    flows.push_back(new Flow(100.0, getPath(resources, p2, SIZE(p2))));
+
+    Solver::solve(flows, resources);
+
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    EXPECT_DOUBLE_EQ(100.0, flows.at(0)->getAllocation());
+    EXPECT_DOUBLE_EQ(4.0, flows.at(1)->getAllocation());
+    EXPECT_DOUBLE_EQ(4.0, flows.at(2)->getAllocation());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(0)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(1)->getCapacity());
+    EXPECT_DOUBLE_EQ(6.0, resources.at(3)->getCapacity());
+    EXPECT_DOUBLE_EQ(96.0, resources.at(2)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(4)->getCapacity());
+}
+
+TEST(FiveResourcesTest, test4) {
+    std::vector<Flow*> flows;
+    std::vector<Resource*> resources;
+
+    resources.push_back(new Resource(100.0)); //0
+    resources.push_back(new Resource(100.0)); //1
+    resources.push_back(new Resource(100.0)); //2
+    resources.push_back(new Resource(110.0)); //3
+    resources.push_back(new Resource(8.0));   //4
+
+    long p0[] = { 0, 1, 3 };
+    long p1[] = { 2, 3, 4 };
+    long p2[] = { 4 };
+
+    flows.push_back(new Flow(100.0, getPath(resources, p2, SIZE(p2))));
+    flows.push_back(new Flow(100.0, getPath(resources, p0, SIZE(p0))));
+    flows.push_back(new Flow(100.0, getPath(resources, p1, SIZE(p1))));
+
+    Solver::solve(flows, resources);
+
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    EXPECT_DOUBLE_EQ(4.0, flows.at(0)->getAllocation());
+    EXPECT_DOUBLE_EQ(100.0, flows.at(1)->getAllocation());
+    EXPECT_DOUBLE_EQ(4.0, flows.at(2)->getAllocation());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(0)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(1)->getCapacity());
+    EXPECT_DOUBLE_EQ(6.0, resources.at(3)->getCapacity());
+    EXPECT_DOUBLE_EQ(96.0, resources.at(2)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(4)->getCapacity());
+}
+
+TEST(FiveResourcesTest, test5) {
+    std::vector<Flow*> flows;
+    std::vector<Resource*> resources;
+
+    resources.push_back(new Resource(100.0)); //0
+    resources.push_back(new Resource(100.0)); //1
+    resources.push_back(new Resource(100.0)); //2
+    resources.push_back(new Resource(110.0)); //3
+    resources.push_back(new Resource(8.0));   //4
+
+    long p0[] = { 0, 1, 3 };
+    long p1[] = { 2, 3, 4 };
+    long p2[] = { 4 };
+
+    flows.push_back(new Flow(100.0, getPath(resources, p1, SIZE(p1))));
+    flows.push_back(new Flow(100.0, getPath(resources, p2, SIZE(p2))));
+    flows.push_back(new Flow(100.0, getPath(resources, p0, SIZE(p0))));
+
+    Solver::solve(flows, resources);
+
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    EXPECT_DOUBLE_EQ(4.0, flows.at(0)->getAllocation());
+    EXPECT_DOUBLE_EQ(4.0, flows.at(1)->getAllocation());
+    EXPECT_DOUBLE_EQ(100.0, flows.at(2)->getAllocation());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(0)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(1)->getCapacity());
+    EXPECT_DOUBLE_EQ(6.0, resources.at(3)->getCapacity());
+    EXPECT_DOUBLE_EQ(96.0, resources.at(2)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(4)->getCapacity());
+}
+
+TEST(FiveResourcesTest, test6) {
+    std::vector<Flow*> flows;
+    std::vector<Resource*> resources;
+
+    resources.push_back(new Resource(100.0)); //0
+    resources.push_back(new Resource(100.0)); //1
+    resources.push_back(new Resource(100.0)); //2
+    resources.push_back(new Resource(110.0)); //3
+    resources.push_back(new Resource(8.0));   //4
+
+    long p0[] = { 0, 1, 3 };
+    long p1[] = { 2, 3, 4 };
+    long p2[] = { 4 };
+
+
+    flows.push_back(new Flow(100.0, getPath(resources, p2, SIZE(p2))));
+    flows.push_back(new Flow(100.0, getPath(resources, p1, SIZE(p1))));
+    flows.push_back(new Flow(100.0, getPath(resources, p0, SIZE(p0))));
+
+    Solver::solve(flows, resources);
+
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    EXPECT_DOUBLE_EQ(4.0, flows.at(0)->getAllocation());
+    EXPECT_DOUBLE_EQ(4.0, flows.at(1)->getAllocation());
+    EXPECT_DOUBLE_EQ(100.0, flows.at(2)->getAllocation());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(0)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(1)->getCapacity());
+    EXPECT_DOUBLE_EQ(6.0, resources.at(3)->getCapacity());
+    EXPECT_DOUBLE_EQ(96.0, resources.at(2)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(4)->getCapacity());
+}
+
+TEST(FiveResourcesTest, test7) {
+    std::vector<Flow*> flows;
+    std::vector<Resource*> resources;
+
+    resources.push_back(new Resource(100.0)); //0
+    resources.push_back(new Resource(100.0)); //1
+    resources.push_back(new Resource(100.0)); //2
+    resources.push_back(new Resource(110.0)); //3
+    resources.push_back(new Resource(8.0));   //4
+
+    long p0[] = { 0, 1, 3 };
+    long p1[] = { 2, 3, 4 };
+    long p2[] = { 4 };
+
+
+    flows.push_back(new Flow(4.0, getPath(resources, p2, SIZE(p2))));
+    flows.push_back(new Flow(100.0, getPath(resources, p1, SIZE(p1))));
+    flows.push_back(new Flow(100.0, getPath(resources, p0, SIZE(p0))));
+
+    Solver::solve(flows, resources);
+
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    EXPECT_DOUBLE_EQ(4.0, flows.at(0)->getAllocation());
+    EXPECT_DOUBLE_EQ(4.0, flows.at(1)->getAllocation());
+    EXPECT_DOUBLE_EQ(100.0, flows.at(2)->getAllocation());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(0)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(1)->getCapacity());
+    EXPECT_DOUBLE_EQ(6.0, resources.at(3)->getCapacity());
+    EXPECT_DOUBLE_EQ(96.0, resources.at(2)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(4)->getCapacity());
+}
+
+TEST(FiveResourcesTest, test8) {
+    std::vector<Flow*> flows;
+    std::vector<Resource*> resources;
+
+    resources.push_back(new Resource(100.0)); //0
+    resources.push_back(new Resource(100.0)); //1
+    resources.push_back(new Resource(100.0)); //2
+    resources.push_back(new Resource(110.0)); //3
+    resources.push_back(new Resource(8.0));   //4
+
+    long p0[] = { 0, 1, 3 };
+    long p1[] = { 2, 3, 4 };
+    long p2[] = { 4 };
+
+    flows.push_back(new Flow(100.0, getPath(resources, p1, SIZE(p1))));
+    flows.push_back(new Flow(4.0, getPath(resources, p2, SIZE(p2))));
+    flows.push_back(new Flow(100.0, getPath(resources, p0, SIZE(p0))));
+
+    Solver::solve(flows, resources);
+
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    EXPECT_DOUBLE_EQ(4.0, flows.at(0)->getAllocation());
+    EXPECT_DOUBLE_EQ(4.0, flows.at(1)->getAllocation());
+    EXPECT_DOUBLE_EQ(100.0, flows.at(2)->getAllocation());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(0)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(1)->getCapacity());
+    EXPECT_DOUBLE_EQ(6.0, resources.at(3)->getCapacity());
+    EXPECT_DOUBLE_EQ(96.0, resources.at(2)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(4)->getCapacity());
+}
+
+TEST(ThreeResourcesTest, test1) {
+    std::vector<Flow*> flows;
+    std::vector<Resource*> resources;
+
+    resources.push_back(new Resource(1.0)); //0
+    resources.push_back(new Resource(2.0)); //1
+    resources.push_back(new Resource(3.0)); //2
+
+    long p0[] = { 0, 1 };
+    long p1[] = { 1, 2 };
+    long p2[] = { 0, 2 };
+
+    flows.push_back(new Flow(10.0, getPath(resources, p0, SIZE(p0))));
+    flows.push_back(new Flow(10.0, getPath(resources, p1, SIZE(p1))));
+    flows.push_back(new Flow(10.0, getPath(resources, p2, SIZE(p2))));
+
+    Solver::solve(flows, resources);
+
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    EXPECT_DOUBLE_EQ(0.5, flows.at(0)->getAllocation());
+    EXPECT_DOUBLE_EQ(1.5, flows.at(1)->getAllocation());
+    EXPECT_DOUBLE_EQ(0.5, flows.at(2)->getAllocation());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(0)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(1)->getCapacity());
+    EXPECT_DOUBLE_EQ(1.0, resources.at(2)->getCapacity());
+}
+
+TEST(ThreeResourcesTest, test2) {
+    std::vector<Flow*> flows;
+    std::vector<Resource*> resources;
+
+    resources.push_back(new Resource(1.0)); //0
+    resources.push_back(new Resource(2.0)); //1
+    resources.push_back(new Resource(3.0)); //2
+
+    long p0[] = { 0, 1 };
+    long p1[] = { 1, 2 };
+    long p2[] = { 0, 2 };
+
+    flows.push_back(new Flow(0.5, getPath(resources, p0, SIZE(p0))));
+    flows.push_back(new Flow(10.0, getPath(resources, p1, SIZE(p1))));
+    flows.push_back(new Flow(10.0, getPath(resources, p2, SIZE(p2))));
+
+    Solver::solve(flows, resources);
+
+    Solver::printFlows(flows);
+    Solver::printResources(resources);
+
+    EXPECT_DOUBLE_EQ(0.5, flows.at(0)->getAllocation());
+    EXPECT_DOUBLE_EQ(1.5, flows.at(1)->getAllocation());
+    EXPECT_DOUBLE_EQ(0.5, flows.at(2)->getAllocation());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(0)->getCapacity());
+    EXPECT_DOUBLE_EQ(0.0, resources.at(1)->getCapacity());
+    EXPECT_DOUBLE_EQ(1.0, resources.at(2)->getCapacity());
+}
 
 extern size_t ResourceSize;
 extern size_t FlowSize;
