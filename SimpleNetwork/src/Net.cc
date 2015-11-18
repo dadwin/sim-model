@@ -47,6 +47,8 @@ void Net::initialize() {
         const int destination = getValueFromXmlTag<int>(flow, "destination");
 
         auto fp = new FlowParameters(demand, start, end, source, destination);
+        if (source == destination || source < 1 || destination < 1)
+            continue; // skipping bad addresses
         addFlowParameters(fp);
     }
 }
@@ -189,6 +191,10 @@ std::vector<int>* Net::getGatePath(const int srcAddress, const int dstAddress) {
     if (dstServer == nullptr) {
         throw cRuntimeError("no server for destination address: %d",
                 dstAddress);
+    }
+
+    if (srcAddress == dstAddress) {
+        throw cRuntimeError("source and destination addresses are the same: %d", srcServer);
     }
 
     std::vector<int>* path = new std::vector<int>();
