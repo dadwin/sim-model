@@ -25,17 +25,15 @@ public:
     }
 
     static bool comp1(const Resource* first, const Resource* second) {
-        double cn1 = first->maxCapacity / (double) first->flows;
-        double cn2 = second->maxCapacity / (double) second->flows;
-        return cn1 < cn2;
+        const double mc1 = first->getFairMaxCapacity();
+        const double mc2 = second->getFairMaxCapacity();
+        return mc1 < mc2;
     }
 
     static bool comp2(const Resource* first, const Resource* second) {
-        double n1 = first->flows - first->flows_allotted;
-        double n2 = second->flows - second->flows_allotted;
-        double cn1 = first->capacity / n1;
-        double cn2 = second->capacity / n2;
-        return cn1 < cn2;
+        const double fc1 = first->getFairCapacity();
+        const double fc2 = second->getFairCapacity();
+        return fc1 < fc2;
     }
 
     virtual double getFairMaxCapacity() const {

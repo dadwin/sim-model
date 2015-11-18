@@ -12,6 +12,7 @@
 #include <cmessage.h>
 #include "Server.h"
 #include "Resource.h"
+#include <algorithm>
 #include <vector>
 
 class Flow {
@@ -131,6 +132,29 @@ public:
     bool operator==(const Flow& f) {
         return this == &f;
         // TODO what about other members?
+    }
+
+    static bool compByFairShare(const Flow* first, const Flow* second) {
+        const auto p1 = first->getPath();
+        const Resource* minR1 = *std::min_element(p1->begin(), p1->end(), Resource::comp2);
+        const double fs1 = minR1->getFairCapacity();
+
+        const auto p2 = second->getPath();
+        const Resource* minR2 = *std::min_element(p2->begin(), p2->end(), Resource::comp2);
+        const double fs2 = minR2->getFairCapacity();
+        return fs1 < fs2;
+    }
+
+    static bool compByFairShareDemand(const Flow* first, const Flow* second) {
+        const auto p1 = first->getPath();
+        const Resource* minR1 = *std::min_element(p1->begin(), p1->end(), Resource::comp2);
+        const double fsd1 = minR1->getFairCapacity()/first->getDemand();
+
+        const auto p2 = second->getPath();
+        const Resource* minR2 = *std::min_element(p2->begin(), p2->end(), Resource::comp2);
+        const double fsd2 = minR2->getFairCapacity()/second->getDemand();
+        // we want flows which are thin (share/demand >=1 or share >= demand) to be first
+        return fsd1 > fsd2;
     }
 
     double getDemand() const {

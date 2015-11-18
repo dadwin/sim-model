@@ -20,6 +20,81 @@
 
 
 class Solver {
+protected:
+        std::vector<Flow*> inputFlows;
+        std::vector<Resource*> inputResources;
+
+
+    static void allocateThinFlows(std::vector<Flow*>& flows,
+            const std::vector<Resource*>& resources) {
+        // we need flows to be ordered in terms of minimal fair share and demand
+        // so we want allocated thin flows (fair share >= demand) in one pass
+        // that why here we use compByFairShareDemand
+        std::sort(flows.begin(), flows.end(), Flow::compByFairShareDemand);
+
+        for (auto it = flows.begin(); it != flows.end(); /* nothing */) {
+
+            Flow* f = *it;
+
+            auto path = f->getPath();
+            const Resource* minR = *std::min_element(path->begin(), path->end(), Resource::comp2);
+
+            if (f->getDemand() <= minR->getFairCapacity()) {
+                f->setAllocation(f->getDemand());
+
+                for (auto r : *path) {
+                    r->countAllottedFlow();
+                    r->decreaseCapacity(f->getDemand());
+                }
+
+                it = flows.erase(it);
+            } else {
+                ++it;
+                // NOTE hint for the future:
+                // here should be --it; and when we come to this else branch, we can do break
+                // since we sorted flows and no thin flows any more
+            }
+        }
+    }
+
+    static bool allocateThickFlows(std::vector<Flow*>& flows,
+            const std::vector<Resource*>& resources) {
+
+        // now we have flows all of that are with demand being greater than fair sharing (thick flows).
+        // for them we allocate fair share
+        std::sort(flows.begin(), flows.end(), Flow::compByFairShare);
+
+
+        bool isThinFlowFound = false;
+        for (auto it = flows.begin(); it != flows.end(); /* nothing */) {
+
+            Flow* f = *it;
+
+            auto path = f->getPath();
+            const Resource* minR = *std::min_element(path->begin(), path->end(), Resource::comp2);
+
+            const double fairShare = minR->getFairCapacity();
+            if (f->getDemand() >= fairShare) {
+                f->setAllocation(fairShare);
+
+                for (auto r : *path) {
+                    r->countAllottedFlow();
+                    r->decreaseCapacity(fairShare);
+                }
+
+                it = flows.erase(it);
+            } else {
+                isThinFlowFound = true;
+                break;
+            }
+        }
+
+        if (isThinFlowFound)
+            allocateThinFlows(flows, resources);
+
+        return flows.size() != 0;
+    }
+
 public:
 
     static void solve(const std::vector<Flow*>& inputFlows,
@@ -43,65 +118,8 @@ public:
 
         std::vector<Flow*> flows(inputFlows);
 
-        size_t currentSize, previousSize;
-        do {
-            previousSize = flows.size();
-
-            for (auto it = flows.begin(); it != flows.end(); /* nothing */) {
-
-                Flow* f = *it;
-
-                auto path = f->getPath();
-                const Resource* minR = *std::min_element(path->begin(), path->end(), Resource::comp2);
-
-                if (f->getDemand() <= minR->getFairCapacity()) {
-                    f->setAllocation(f->getDemand());
-
-                    for (auto r : *path) {
-                        r->countAllottedFlow();
-                        r->decreaseCapacity(f->getDemand());
-                    }
-
-                    it = flows.erase(it);
-                } else {
-                    ++it;
-                }
-            }
-
-            currentSize = flows.size();
-            // stop after for-loop can't make a flow alloted
-            // if all flows become allotted, then both currentSize and previousSize are equal to zero and it's OK.
-        } while (previousSize != currentSize);
-
-        if (flows.size() == 0) {
-            // OK, all flows are allocated, exit
-            return;
-        }
-
-        // now we have flows all of that are with demand being greater than fair sharing.
-        // for them we allocate fair share
-        for (auto it = flows.begin(); it != flows.end(); /* nothing */) {
-
-            Flow* f = *it;
-
-            auto path = f->getPath();
-            const Resource* minR = *std::min_element(path->begin(), path->end(), Resource::comp2);
-
-            const double fairShare = minR->getFairCapacity();
-            if (f->getDemand() > fairShare) {
-                f->setAllocation(fairShare);
-
-                for (auto r : *path) {
-                    r->countAllottedFlow();
-                    r->decreaseCapacity(fairShare);
-                }
-
-                it = flows.erase(it);
-            } else {
-                throw std::invalid_argument("impossible!");
-                ++it;
-            }
-        }
+        allocateThinFlows(flows, resources);
+        while (allocateThickFlows(flows, resources)) {};
 
         if (flows.size() != 0)
             throw std::invalid_argument("not all flows are allotted");
@@ -119,7 +137,6 @@ static void printResources(const std::vector<Resource*>& resources) {
     for (const Resource* r : resources)
         std::cout << " mc:" << r->getMaxCapacity() << " c:" << r->getCapacity() << "\n";
 }
-
 };
 
 
