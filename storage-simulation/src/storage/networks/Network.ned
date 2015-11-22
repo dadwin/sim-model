@@ -158,9 +158,10 @@ module Continent
         port <--> switch.port[0];
 }
 
-network Storage
-{
+module Storage
+{   
     parameters:
+       // @isNetwork(true);
         @display("i=misc/cloud");
         int size @prompt("Number of continents in storage") = default(1);
 
@@ -168,8 +169,6 @@ network Storage
         //inout port;
 
     submodules:
-        routing : Routing;
-        net : Net;
         continent[size] : Continent;
 //        c1: Continent {
 //            parameters:
@@ -198,4 +197,16 @@ network Storage
 
         //port <--> switch.port[0]; INFO commented for a while
 
+}
+
+network World
+{
+    submodules:
+        routing : Routing;
+        net : Net;
+        storage : Storage;
+        // here order of declaration is important:
+        // initialization goes in order of declaration
+        // both Routing and Net are cleared on initialization (see corresponding initialize())
+        // that's why they should be declared before Storage 
 }

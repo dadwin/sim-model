@@ -7,48 +7,30 @@ import storage.networks.Continent;
 import storage.networks.Routing;
 import storage.networks.Net;
 import storage.networks.Switch;
+import storage.networks.Storage;
 
-channel DataChannel extends ned.IdealChannel
-{
-    parameters:
-        @resource;
-        double maxCapacity = default(100);
-        double capacity = maxCapacity;
+network Test {
+submodules:
+	net : Net;
+	routing : Routing;
+	storage : Storage;
 }
-
-network Storage
-{
-    parameters:
-        @display("i=misc/cloud");
-        int size @prompt("Number of continents in storage") = default(1);
-
-    submodules:
-        routing : Routing;
-        net : Net;
-        continent[size] : Continent;
-
-        switch: Switch {
-            gates:
-                port[size+1];
-        }
-    connections allowunconnected:
-        for k=1..size {
-            switch.port[k] <--> DataChannel <--> continent[k-1].port;
-        }
-
-}
-
 
 %inifile: omnetpp.ini
 
 [General]
-network = Storage
+network = Test
 record-eventlog = true
 simtime-scale = -3
-**.net.flowprofile = xmldoc("../../../src/storage/networks/flow-profile.xml")
-cmdenv-express-mode = false
-#ned-path = .;../src;../../src;../../../src
+**.net.flowprofile = xmldoc("../../../src/storage/networks/flow-profile1.xml")
+**.storage.size = 1
+**.storage.continent[*].size = 1
+**.storage.continent[*].dc[*].size = 2
+**.storage.continent[*].dc[*].hall[*].size = 2
+**.storage.continent[*].dc[*].hall[*].rack[*].size = 3
+#cmdenv-express-mode = false
 ned-path = .;../../../src;../../../src/storage/networks;
+
 
 %contains: stdout
 Flow added. Time: 0
@@ -60,8 +42,8 @@ Flow deleted. Time: 7.2
 Flow deleted. Time: 181
 Flow deleted. Time: 190
 
-%not-contains: stdout
-undisposed object:
+#%not-contains: stdout
+#undisposed object:
 
 
 

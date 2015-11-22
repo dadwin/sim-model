@@ -9,7 +9,13 @@
 TARGET = libstorage-simulation$(SHARED_LIB_SUFFIX)
 
 # C++ include paths (with -I)
-INCLUDE_PATH = -I. -Istorage -Istorage/algorithms -Istorage/networks -Istorage/server
+INCLUDE_PATH = \
+    -I. \
+    -Istorage \
+    -Istorage/algorithms \
+    -Istorage/networks \
+    -Istorage/networks/results \
+    -Istorage/server
 
 # Additional object and library files to link with
 EXTRA_OBJS =
@@ -104,6 +110,7 @@ clean:
 	$(Q)-rm -f storage/*_m.cc storage/*_m.h
 	$(Q)-rm -f storage/algorithms/*_m.cc storage/algorithms/*_m.h
 	$(Q)-rm -f storage/networks/*_m.cc storage/networks/*_m.h
+	$(Q)-rm -f storage/networks/results/*_m.cc storage/networks/results/*_m.h
 	$(Q)-rm -f storage/server/*_m.cc storage/server/*_m.h
 
 cleanall: clean
@@ -111,7 +118,7 @@ cleanall: clean
 
 depend:
 	$(qecho) Creating dependencies...
-	$(Q)$(MAKEDEPEND) $(INCLUDE_PATH) -f Makefile -P\$$O/ -- $(MSG_CC_FILES)  ./*.cc storage/*.cc storage/algorithms/*.cc storage/networks/*.cc storage/server/*.cc
+	$(Q)$(MAKEDEPEND) $(INCLUDE_PATH) -f Makefile -P\$$O/ -- $(MSG_CC_FILES)  ./*.cc storage/*.cc storage/algorithms/*.cc storage/networks/*.cc storage/networks/results/*.cc storage/server/*.cc
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 $O/storage/networks/Net.o: storage/networks/Net.cc \
