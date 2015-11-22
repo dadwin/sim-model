@@ -1,0 +1,28 @@
+#!/bin/bash
+
+echo '<?xml version="1.0" encoding="UTF-8"?>'
+echo '<root>'
+
+SERVER_NUM=500000;
+FLOWS_PER_SEC=1000;
+
+for f in `seq 1 $FLOWS_PER_SEC`; do
+	let src=24936*$f*$f+7*$f+19;
+	let src=$src%$SERVER_NUM;
+
+	let dst=139566*$f*$f+123*$f+12371;
+	let dst=$dst%$SERVER_NUM;
+	echo '<flow>'
+	echo -e \\t'<demand>100</demand>'
+        echo -e \\t'<startTime>0</startTime>'
+        echo -e \\t'<endTime>1</endTime>'
+#        echo -e \\t'<source>'$src'</source>'
+#        echo -e \\t'<destination>'$dst'</destination>'
+        echo -e \\t'<source>'$f'</source>'
+	let dst=$SERVER_NUM-$f
+        echo -e \\t'<destination>'$dst'</destination>'
+	echo '</flow>'
+done;
+
+
+echo '</root>'

@@ -1,0 +1,67 @@
+%description:
+Test server whether all two server's channels were added to resources list.
+
+%file: test.ned
+
+import storage.networks.Continent;
+import storage.networks.Routing;
+import storage.networks.Net;
+import storage.networks.Switch;
+
+channel DataChannel extends ned.IdealChannel
+{
+    parameters:
+        @resource;
+        double maxCapacity = default(100);
+        double capacity = maxCapacity;
+}
+
+network Storage
+{
+    parameters:
+        @display("i=misc/cloud");
+        int size @prompt("Number of continents in storage") = default(1);
+
+    submodules:
+        routing : Routing;
+        net : Net;
+        continent[size] : Continent;
+
+        switch: Switch {
+            gates:
+                port[size+1];
+        }
+    connections allowunconnected:
+        for k=1..size {
+            switch.port[k] <--> DataChannel <--> continent[k-1].port;
+        }
+
+}
+
+
+%inifile: omnetpp.ini
+
+[General]
+network = Storage
+record-eventlog = true
+simtime-scale = -3
+**.net.flowprofile = xmldoc("../../../src/storage/networks/flow-profile.xml")
+cmdenv-express-mode = false
+#ned-path = .;../src;../../src;../../../src
+ned-path = .;../../../src;../../../src/storage/networks;
+
+%contains: stdout
+Flow added. Time: 0
+Flow added. Time: 1
+Flow added. Time: 5
+Flow added. Time: 5
+Flow deleted. Time: 6.2
+Flow deleted. Time: 7.2
+Flow deleted. Time: 181
+Flow deleted. Time: 190
+
+%not-contains: stdout
+undisposed object:
+
+
+
