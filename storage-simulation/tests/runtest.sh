@@ -19,7 +19,7 @@ echo
 (cd work; opp_makemake -f --deep -L../../src -lstorage-simulation -P . --no-deep-includes -I../../src; $MAKE) || exit 1
 echo
 #env
-opp_test run $OPT -v $TESTFILES -a || exit 1
+opp_test run -v $OPT $TESTFILES || exit 1
 echo
 echo Results can be found in ./work
 

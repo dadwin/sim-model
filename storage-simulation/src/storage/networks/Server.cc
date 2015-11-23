@@ -174,7 +174,7 @@ void Server::addFlow(const int sourceAddress, const int destAddress,
     // create event for omnetpp for new flow
     flow->sourceServer()->scheduleAt(flow->getEndTime(), flow->getEvent());
 
-    std::cout << "Flow added. Time: " << simTime() << endl;
+    //std::cout << "Flow added. Time: " << simTime() << endl;
     ev << simTime() << ": Flow added. Time: " << simTime() << endl;
 }
 
@@ -220,7 +220,7 @@ void Server::removeFlow(Flow* flow) {
         r->getNedComponent()->par("capacity").setDoubleValue(r->getCapacity());
     }
 
-    std::cout << "Flow deleted. Time: " << simTime() << endl;
+    //std::cout << "Flow deleted. Time: " << simTime() << endl;
     ev << simTime() << ": Flow deleted. Time: " << simTime() << endl;
 }
 
