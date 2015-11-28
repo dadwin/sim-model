@@ -1,0 +1,73 @@
+%description:
+Test network subsystem: check that flows finishes in proper time.
+By proper time I mean time calculated analitically.
+
+%file: flow-profile.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <flow>
+        <demand>60</demand>
+        <startTime>23</startTime>
+        <endTime>24</endTime>
+        <source>11</source>
+        <destination>12</destination>
+        <!--
+        V = 60
+        end = 24.2
+        -->
+    </flow>
+    <flow>
+        <demand>60</demand>
+        <startTime>23</startTime>
+        <endTime>24</endTime>
+        <source>11</source>
+        <destination>10</destination>
+        <!--
+        V = 60
+        end = 24.2
+        -->
+    </flow>
+</root>
+
+%file: test.ned
+
+import storage.networks.Continent;
+import storage.networks.Routing;
+import storage.networks.Net;
+import storage.networks.Switch;
+import storage.networks.Storage;
+
+network Test {
+submodules:
+	net : Net;
+	routing : Routing;
+	storage : Storage;
+}
+
+%inifile: omnetpp.ini
+
+[General]
+network = Test
+record-eventlog = true
+simtime-scale = -3
+**.net.flowprofile = xmldoc("flow-profile.xml")
+**.storage.size = 1
+**.storage.continent[*].size = 1
+**.storage.continent[*].dc[*].size = 2
+**.storage.continent[*].dc[*].hall[*].size = 2
+**.storage.continent[*].dc[*].hall[*].rack[*].size = 3
+#cmdenv-express-mode = false
+ned-path = .;../../../src
+
+%#--------------------------------------------------------------------------------------------------------------
+%contains-regex: stdout
+
+Running simulation\.\.\.
+.*
+23: Flow added. Time: 23
+.*
+23: Flow added. Time: 23
+.*
+24.2: Flow deleted. Time: 24.2
+.*
+24.2: Flow deleted. Time: 24.2

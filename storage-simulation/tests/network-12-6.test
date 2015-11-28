@@ -1,0 +1,88 @@
+%description:
+Test network subsystem: check that flows finishes in proper time.
+By proper time I mean time calculated analitically.
+
+%file: flow-profile.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <flow>
+        <demand>80</demand>
+        <startTime>40</startTime>
+        <endTime>43</endTime>
+        <source>1</source>
+        <destination>6</destination>
+        <!--
+        V = 240
+        end = 43.75
+        -->
+    </flow>
+    <flow>
+        <demand>100</demand>
+        <startTime>41</startTime>
+        <endTime>42</endTime>
+        <source>8</source>
+        <destination>4</destination>
+        <!--
+        V = 100
+        end = 43
+        -->
+    </flow>    
+    <flow>
+        <demand>10</demand>
+        <startTime>42</startTime>
+        <endTime>43</endTime>
+        <source>11</source>
+        <destination>2</destination>
+        <!--
+        V = 10
+        end = 43
+        -->
+    </flow>
+</root>
+
+%file: test.ned
+
+import storage.networks.Continent;
+import storage.networks.Routing;
+import storage.networks.Net;
+import storage.networks.Switch;
+import storage.networks.Storage;
+
+network Test {
+submodules:
+	net : Net;
+	routing : Routing;
+	storage : Storage;
+}
+
+%inifile: omnetpp.ini
+
+[General]
+network = Test
+record-eventlog = true
+simtime-scale = -3
+**.net.flowprofile = xmldoc("flow-profile.xml")
+**.storage.size = 1
+**.storage.continent[*].size = 1
+**.storage.continent[*].dc[*].size = 2
+**.storage.continent[*].dc[*].hall[*].size = 2
+**.storage.continent[*].dc[*].hall[*].rack[*].size = 3
+#cmdenv-express-mode = false
+ned-path = .;../../../src
+
+%#--------------------------------------------------------------------------------------------------------------
+%contains-regex: stdout
+
+Running simulation\.\.\.
+.*
+40: Flow added. Time: 40
+.*
+41: Flow added. Time: 41
+.*
+42: Flow added. Time: 42
+.*
+43: Flow deleted. Time: 43
+.*
+43: Flow deleted. Time: 43
+.*
+43.75: Flow deleted. Time: 43.75

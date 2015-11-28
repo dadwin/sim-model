@@ -1,0 +1,87 @@
+%description:
+Test network subsystem: check that flows finishes in proper time.
+By proper time I mean time calculated analitically.
+
+%file: flow-profile.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <flow>
+        <demand>1000</demand>
+        <startTime>0</startTime>
+        <endTime>10</endTime>
+        <source>2</source>
+        <destination>11</destination>
+    </flow>
+    <flow>
+        <demand>1000</demand>
+        <startTime>1</startTime>
+        <endTime>10</endTime>
+        <source>1</source>
+        <destination>11</destination>
+    </flow>
+    <flow>
+        <demand>60</demand>
+        <startTime>5</startTime>
+        <endTime>6</endTime>
+        <source>7</source>
+        <destination>9</destination>
+    </flow>
+    <flow>
+        <demand>60</demand>
+        <startTime>5</startTime>
+        <endTime>7</endTime>
+        <source>8</source>
+        <destination>9</destination>
+    </flow>
+</root>
+
+%file: test.ned
+
+import storage.networks.Continent;
+import storage.networks.Routing;
+import storage.networks.Net;
+import storage.networks.Switch;
+import storage.networks.Storage;
+
+network Test {
+submodules:
+	net : Net;
+	routing : Routing;
+	storage : Storage;
+}
+
+%inifile: omnetpp.ini
+
+[General]
+network = Test
+record-eventlog = true
+simtime-scale = -3
+**.net.flowprofile = xmldoc("flow-profile.xml")
+**.storage.size = 1
+**.storage.continent[*].size = 1
+**.storage.continent[*].dc[*].size = 2
+**.storage.continent[*].dc[*].hall[*].size = 2
+**.storage.continent[*].dc[*].hall[*].rack[*].size = 3
+#cmdenv-express-mode = false
+ned-path = .;../../../src
+
+%#--------------------------------------------------------------------------------------------------------------
+%contains-regex: stdout
+
+Running simulation\.\.\.
+.*
+0: Flow added. Time: 0
+.*
+1: Flow added. Time: 1
+.*
+5: Flow added. Time: 5
+.*
+5: Flow added. Time: 5
+.*
+6.2: Flow deleted. Time: 6.2
+.*
+7.2: Flow deleted. Time: 7.2
+.*
+181: Flow deleted. Time: 181
+.*
+190: Flow deleted. Time: 190

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+<flow>
+	<demand>100</demand>
+	<startTime>0</startTime>
+	<endTime>1</endTime>
+	<source>1</source>
+	<destination>499999</destination>
+</flow>
+</root>

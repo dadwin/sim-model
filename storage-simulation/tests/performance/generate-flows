@@ -1,0 +1,37 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]
+	then
+	echo 'No arguments supplied'
+	echo 'Use ./generate-flows <server-num> <flows-num>'
+	exit 1;
+fi
+
+SERVERS_NUM=$1; #500000;
+FLOWS_NUM=$2; #1000;
+NAME='flows-'$SERVERS_NUM'-'$FLOWS_NUM'.xml'
+
+echo 'Running generate-flows with '$SERVERS_NUM' servers and '$FLOWS_NUM' flows'
+
+echo '<?xml version="1.0" encoding="UTF-8"?>' > $NAME 
+echo '<root>' >> $NAME
+
+for f in `seq 1 $FLOWS_NUM`; do
+	let src=24936*$f*$f+7*$f+19;
+	let src=$src%$SERVERS_NUM;
+
+	let dst=139566*$f*$f+123*$f+12371;
+	let dst=$dst%$SERVERS_NUM;
+	echo '<flow>' >> $NAME
+	echo -e \\t'<demand>100</demand>' >> $NAME
+        echo -e \\t'<startTime>0</startTime>' >> $NAME
+        echo -e \\t'<endTime>1</endTime>' >> $NAME
+#        echo -e \\t'<source>'$src'</source>'
+#        echo -e \\t'<destination>'$dst'</destination>'
+        echo -e \\t'<source>'$f'</source>' >> $NAME
+	let dst=$SERVERS_NUM-$f
+        echo -e \\t'<destination>'$dst'</destination>' >> $NAME
+	echo '</flow>' >> $NAME
+done;
+
+echo '</root>' >> $NAME
