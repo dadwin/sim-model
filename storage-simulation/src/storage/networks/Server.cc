@@ -113,10 +113,9 @@ void Server::handleMessage(cMessage *msg)
 void Server::handleDataMessage(cMessage *msg)
 {
     Flow* flow = (Flow*) msg->par("flow").pointerValue();
-    removeFlow(flow);
+    removeFlow(flow); // removeFlow wipes the flow
 
     //delete msg; // NOTE Message is part of Flow and Flow is owner of it
-
 }
 
 void Server::handleFlowMessage(cMessage *msg)
