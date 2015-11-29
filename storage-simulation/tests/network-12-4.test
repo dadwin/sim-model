@@ -71,3 +71,7 @@ Running simulation\.\.\.
 28: Flow deleted. Time: 28
 .*
 28: Flow deleted. Time: 28
+
+%not-contains: stdout
+undisposed object:
+
