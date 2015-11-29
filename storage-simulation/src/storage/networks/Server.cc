@@ -17,6 +17,7 @@
 #include "Flow.h"
 #include "Net.h"
 #include "Solver.h"
+#include "Messages.h"
 #include <cexception.h>
 
 #include <algorithm>
@@ -52,7 +53,7 @@ void Server::initialize()
         net->registerResource(resource);
     }
 
-    scheduleAt(0, new cMessage("scheduledInitialize", 0));
+    scheduleAt(0, new cMessage("scheduledInitialize", MessageType::ScheduledInitialize));
 
 }
 
@@ -63,7 +64,7 @@ void Server::scheduledInitialize() {
     // schedule flows
     for (auto flowParameters : flowList) {
 
-        auto event = new cMessage("NewFlow", 0);
+        auto event = new cMessage("NewFlow", MessageType::NewFlow);
         auto par = new cMsgPar("flowParameters");
         par->setPointerValue(flowParameters);
         event->addPar(par);
@@ -74,49 +75,65 @@ void Server::scheduledInitialize() {
 
 void Server::handleMessage(cMessage *msg)
 {
-    if (msg->isSelfMessage()) {
-        handleSelfMessage(msg);
-        return;
+    MessageType msgType = static_cast<MessageType>(msg->getKind());
+
+    switch (msgType) {
+    case FlowMessage: {
+        if (msg->isSelfMessage() != true)
+            throw cRuntimeError("FlowMessage must be self-message");
+        handleFlowMessage(msg);
+        break;
     }
-
-    if (msg->isName("FlowMessage")) {
-        // TODO what should we do here?
+    case NewFlow: {
+        if (msg->isSelfMessage() != true)
+            throw cRuntimeError("NewFlow must be self-message");
+        handleNewFlow(msg);
+        delete msg;
+        break;
     }
-
-    if (msg->isName("DataMessage")) {
-
-        Flow* flow = (Flow*) msg->par("flow").pointerValue();
-        removeFlow(flow);
-
-        //delete msg; // NOTE Message is part of Flow and Flow is owner of it
+    case DataMessage: {
+        if (msg->isSelfMessage() == true)
+            throw cRuntimeError("DataMessage must be non-self-message");
+        handleDataMessage(msg);
+        break;
+    }
+    case ScheduledInitialize: {
+        if (msg->isSelfMessage() != true)
+            throw cRuntimeError("ScheduledInitialize must be self-message");
+        scheduledInitialize();
+        delete msg;
+        break;
+    }
+    default: {
+        break;
+    }
     }
 }
 
-void Server::handleSelfMessage(cMessage *msg)
+void Server::handleDataMessage(cMessage *msg)
 {
-    if (msg->isName("FlowMessage")) {
-        // flow is ended, we need to transmit message to destination server
-        // first we need to calculate path along which message will be transmitted
+    Flow* flow = (Flow*) msg->par("flow").pointerValue();
+    removeFlow(flow);
 
+    //delete msg; // NOTE Message is part of Flow and Flow is owner of it
 
-        Flow* flow = (Flow*) msg->par("flow").pointerValue();
+}
 
-        const int gateId = flow->getNextGateId();
-        msg->setName("DataMessage");
-        msg->setSchedulingPriority(-1);
-        send(msg, gateId);
-    }
+void Server::handleFlowMessage(cMessage *msg)
+{
+    Flow* flow = (Flow*) msg->par("flow").pointerValue();
 
-    if (msg->isName("scheduledInitialize")) {
-        scheduledInitialize();
-        delete msg;
-        return;
-    }
+    const int gateId = flow->getNextGateId();
+    msg->setName("DataMessage");
+    msg->setKind(MessageType::DataMessage);
+    msg->setSchedulingPriority(-1);
+    send(msg, gateId);
+}
 
-    if (msg->isName("NewFlow")) {
-        auto fp= (Net::FlowParameters*) msg->par("flowParameters").pointerValue();
-        addFlow(fp->source, fp->destination, fp->start, fp->end, fp->demand);
-    }
+void Server::handleNewFlow(cMessage *msg)
+{
+    auto fp= (Net::FlowParameters*) msg->par("flowParameters").pointerValue();
+    addFlow(fp->source, fp->destination, fp->start, fp->end, fp->demand);
 }
 
 void Server::addFlow(const int sourceAddress, const int destAddress,

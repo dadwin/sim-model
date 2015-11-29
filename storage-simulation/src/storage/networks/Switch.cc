@@ -67,19 +67,42 @@ void Switch::initialize()
 
 void Switch::handleMessage(cMessage *msg)
 {
-    if (msg->isSelfMessage()) {
-        handleSelfMessage(msg);
-        return;
+    MessageType msgType = static_cast<MessageType>(msg->getKind());
+
+    switch (msgType) {
+    case FlowMessage: {
+        if (msg->isSelfMessage() != true)
+            throw cRuntimeError("FlowMessage must be self-message");
+        break;
+    }
+    case NewFlow: {
+        if (msg->isSelfMessage() != true)
+            throw cRuntimeError("NewFlow must be self-message");
+        break;
+    }
+    case DataMessage: {
+        if (msg->isSelfMessage() == true)
+            throw cRuntimeError("DataMessage must be non-self-message");
+        handleDataMessage(msg);
+        // DataMessage can be deleted by switch, since it's transmitted through it.
+        // Only Node can delete DataMessage
+        break;
+    }
+    case ScheduledInitialize: {
+        if (msg->isSelfMessage() != true)
+            throw cRuntimeError("ScheduledInitialize must be self-message");
+        break;
+    }
+    default: {
+        break;
+    }
     }
 
-    if (msg->isName("DataMessage")) {
-
-        Flow* flow = (Flow*) msg->par("flow").pointerValue();
-
-        const int gateId = flow->getNextGateId();
-        send(msg, gateId);
-    }
 }
 
-void Switch::handleSelfMessage(cMessage *msg) {
+void Switch::handleDataMessage(cMessage *msg) {
+    Flow* flow = (Flow*) msg->par("flow").pointerValue();
+
+    const int gateId = flow->getNextGateId();
+    send(msg, gateId);
 }

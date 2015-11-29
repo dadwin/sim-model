@@ -10,6 +10,7 @@
 
 #include <simtime.h>
 #include <cmessage.h>
+#include "Messages.h"
 #include "Server.h"
 #include "Resource.h"
 #include <algorithm>
@@ -72,7 +73,7 @@ public:
         currentVolume = 0.0;
 
         // when event is delivered, module knows about flow via the Flow parameter
-        event = new cMessage("FlowMessage", 0);
+        event = new cMessage("FlowMessage", MessageType::FlowMessage);
         auto par = new cMsgPar("flow");
         par->setPointerValue(this);
         event->addPar(par);

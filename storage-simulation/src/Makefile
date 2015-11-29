@@ -125,6 +125,7 @@ depend:
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 $O/storage/networks/Net.o: storage/networks/Net.cc \
 	storage/networks/Flow.h \
+	storage/networks/Messages.h \
 	storage/networks/Net.h \
 	storage/networks/Resource.h \
 	storage/networks/Routing.h \
@@ -134,6 +135,7 @@ $O/storage/networks/Routing.o: storage/networks/Routing.cc \
 	storage/networks/Routing.h
 $O/storage/networks/Server.o: storage/networks/Server.cc \
 	storage/networks/Flow.h \
+	storage/networks/Messages.h \
 	storage/networks/Net.h \
 	storage/networks/Resource.h \
 	storage/networks/Routing.h \
@@ -141,6 +143,7 @@ $O/storage/networks/Server.o: storage/networks/Server.cc \
 	storage/networks/Solver.h
 $O/storage/networks/Switch.o: storage/networks/Switch.cc \
 	storage/networks/Flow.h \
+	storage/networks/Messages.h \
 	storage/networks/Net.h \
 	storage/networks/Resource.h \
 	storage/networks/Routing.h \

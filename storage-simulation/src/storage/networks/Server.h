@@ -35,7 +35,9 @@ class Server : public cSimpleModule
 
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
-    void handleSelfMessage(cMessage *msg);
+    void handleFlowMessage(cMessage *msg);
+    void handleDataMessage(cMessage *msg);
+    void handleNewFlow(cMessage *msg);
     void scheduledInitialize();
 
   public:
